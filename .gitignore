@@ -2,6 +2,7 @@
 .venv/
 venv/
 env/
+ENV/
 
 # Environment variables / secrets
 .env
@@ -10,23 +11,27 @@ env/
 # Python
 __pycache__/
 *.py[cod]
-*.pyo
-
-# Testing / coverage
+*$py.class
 .pytest_cache/
 .coverage
 htmlcov/
 
-# IDE
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+dist-ssr/
+
+# IDE / System
 .vscode/
 .idea/
-
-# OS
 .DS_Store
 Thumbs.db
 
 # Logs
 *.log
+logs/
 
 # Local databases
 *.db
