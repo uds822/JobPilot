@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { loginUser, registerUser, getMe, setStoredToken } from '../api/client';
+import { loginUser, registerUser, getMe, setStoredToken, extractErrorMessage } from '../api/client';
 import type { User as UserType } from '../api/client';
 
 interface AuthModalProps {
@@ -22,7 +22,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, addToa
     e.preventDefault();
     setError('');
     if (!username.trim() || !password) { setError('Username and password are required.'); return; }
+    if (username.trim().length < 3) { setError('Username must be at least 3 characters long.'); return; }
     if (mode === 'register' && !email.trim()) { setError('Email is required.'); return; }
+    if (mode === 'register' && password.length < 8) { setError('Password must be at least 8 characters long.'); return; }
 
     setLoading(true);
     try {
@@ -36,7 +38,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onClose, onSuccess, addToa
       addToast('success', `Welcome, ${user.username}!`);
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Authentication failed.');
+      setError(extractErrorMessage(err, 'Authentication failed.'));
     } finally {
       setLoading(false);
     }

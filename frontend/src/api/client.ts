@@ -118,17 +118,69 @@ export function setUnauthorizedHandler(handler: () => void) {
   onUnauthorizedHandler = handler;
 }
 
+export function extractErrorMessage(error: any, fallback = 'An error occurred'): string {
+  if (!error) return fallback;
+  const detail = error.response?.data?.detail;
+  if (typeof detail === 'string' && detail.trim()) {
+    return detail;
+  }
+  if (Array.isArray(detail)) {
+    const msgs = detail
+      .map((d: any) => {
+        if (typeof d === 'string') return d;
+        if (!d) return null;
+        // Format FastAPI / Pydantic validation errors nicely with field context
+        const field = Array.isArray(d.loc) && d.loc.length > 0 ? d.loc[d.loc.length - 1] : null;
+        const fieldName = field && typeof field === 'string' ? field.charAt(0).toUpperCase() + field.slice(1) : null;
+        
+        if (fieldName && d.type === 'string_too_short' && d.ctx?.min_length) {
+          return `${fieldName} must be at least ${d.ctx.min_length} characters long.`;
+        }
+        if (fieldName && d.type === 'string_too_long' && d.ctx?.max_length) {
+          return `${fieldName} cannot exceed ${d.ctx.max_length} characters.`;
+        }
+        if (fieldName && (d.type?.includes('email') || field.toLowerCase() === 'email')) {
+          return `Please enter a valid email address.`;
+        }
+        if (fieldName && d.msg) {
+          return `${fieldName}: ${d.msg}`;
+        }
+        return d.msg || d.detail || JSON.stringify(d);
+      })
+      .filter(Boolean);
+    if (msgs.length > 0) return msgs.join('; ');
+  }
+  if (detail && typeof detail === 'object') {
+    if (detail.msg) return String(detail.msg);
+    if (detail.message) return String(detail.message);
+  }
+  if (error.response?.data?.message && typeof error.response.data.message === 'string') {
+    return error.response.data.message;
+  }
+  if (error.message && typeof error.message === 'string' && !error.message.startsWith('Request failed with status code')) {
+    return error.message;
+  }
+  if (error.response?.status) {
+    if (error.response.status === 401) return 'Unauthorized or invalid credentials.';
+    if (error.response.status === 403) return 'Access forbidden.';
+    if (error.response.status === 404) return 'Resource not found.';
+    if (error.response.status === 409) return 'Data conflict occurred.';
+    if (error.response.status === 422) return 'Validation failed. Please check your input.';
+    if (error.response.status === 429) return 'Rate limit exceeded. Please wait before trying again.';
+    if (error.response.status >= 500) return 'Server error. Please try again later.';
+  }
+  return fallback;
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const isLoginEndpoint = error.config?.url?.includes('/auth/login');
+    if (error.response?.status === 401 && !isLoginEndpoint) {
       clearStoredToken();
       onUnauthorizedHandler?.();
     }
-    if (error.response?.status === 429) {
-      return Promise.reject(new Error('Rate limit exceeded. Please wait before trying again.'));
-    }
-    const message = error.response?.data?.detail || error.message || 'An error occurred';
+    const message = extractErrorMessage(error);
     return Promise.reject(new Error(message));
   }
 );
@@ -138,7 +190,7 @@ export async function loginUser(username: string, password: string): Promise<{ a
   const formData = new URLSearchParams();
   formData.append('username', username.trim());
   formData.append('password', password);
-  const res = await axios.post(`${API_BASE_URL}/auth/login`, formData, {
+  const res = await apiClient.post('/auth/login', formData, {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
   });
   return res.data;
@@ -236,6 +288,11 @@ export async function updateApplication(
 
 export async function deleteApplication(id: number): Promise<void> {
   await apiClient.delete(`/applications/${id}`);
+}
+
+export async function deleteApplicationsBulk(ids: number[]): Promise<{ message: string }> {
+  const res = await apiClient.post('/applications/bulk-delete', { ids });
+  return res.data;
 }
 
 // ─── Jobs ─────────────────────────────────────────────────────────────────────

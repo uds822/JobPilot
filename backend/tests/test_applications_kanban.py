@@ -7,7 +7,7 @@ from app.services.application import get_user_applications_paginated, get_kanban
 
 
 def create_test_user(db, username="testuser_kanban", email="kanban@example.com"):
-    user = User(username=username, email=email, hashed_password="hashed_pw_123")
+    user = User(username=username, email=email, password_hash="hashed_pw_123")
     db.add(user)
     db.commit()
     db.refresh(user)

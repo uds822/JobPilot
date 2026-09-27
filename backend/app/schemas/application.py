@@ -102,3 +102,5 @@ class KanbanBoardResponse(BaseModel):
     rejected: KanbanColumnData
     withdrawn: KanbanColumnData
 
+class BulkDeleteRequest(BaseModel):
+    ids: list[int] = Field(..., min_items=1, max_length=1000, description="List of application IDs to delete. Must contain at least 1 ID and at most 1000 IDs.")

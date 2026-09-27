@@ -9,8 +9,10 @@ import {
   getApplicationsPaginated,
   updateApplication,
   deleteApplication,
+  deleteApplicationsBulk,
   getMyJobs,
-  getMyCompanies
+  getMyCompanies,
+  extractErrorMessage
 } from '../api/client';
 import { sanitizeInput } from '../security/sanitizer';
 
@@ -76,6 +78,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 }) => {
   const [search, setSearch] = useState('');
   const [loadingId, setLoadingId] = useState<number | null>(null);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [selectedApp, setSelectedApp] = useState<EnrichedApplication | null>(null);
   const [editingNotesInModal, setEditingNotesInModal] = useState(false);
   const [modalNotesText, setModalNotesText] = useState('');
@@ -180,10 +184,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
       setColumnsState(updatedColumns);
     } catch (err: any) {
+      const errMsg = extractErrorMessage(err, 'Failed to load applications');
       setColumnsState(prev => {
         const next = { ...prev };
         COLUMNS.forEach(c => {
-          next[c.id] = { ...next[c.id], loading: false, error: err.message || 'Failed to load' };
+          next[c.id] = { ...next[c.id], loading: false, error: errMsg };
         });
         return next;
       });
@@ -255,11 +260,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         };
       });
     } catch (err: any) {
+      const errMsg = extractErrorMessage(err, `Failed to load more ${status.toLowerCase()} applications.`);
       setColumnsState(prev => ({
         ...prev,
-        [status]: { ...prev[status], loadingMore: false, error: err.message || 'Failed to load more' },
+        [status]: { ...prev[status], loadingMore: false, error: errMsg },
       }));
-      addToast('error', `Failed to load more ${status.toLowerCase()} applications.`);
+      addToast('error', errMsg);
     }
   };
 
@@ -333,7 +339,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         setSelectedApp(appToMove);
       }
 
-      addToast('error', e.message || 'Failed to update status.');
+      addToast('error', extractErrorMessage(e, 'Failed to update status.'));
     } finally {
       setLoadingId(null);
     }
@@ -369,7 +375,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       setEditingNotesInModal(false);
       addToast('success', 'Notes saved.');
     } catch (e: any) {
-      addToast('error', e.message);
+      addToast('error', extractErrorMessage(e, 'Failed to save notes.'));
     } finally {
       setLoadingId(null);
     }
@@ -393,6 +399,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     });
 
     if (selectedApp?.id === id) setSelectedApp(null);
+    setSelectedIds(previous => {
+      const next = new Set(previous);
+      next.delete(id);
+      return next;
+    });
 
     if (isDemoMode && onDeleteDemoApp) {
       onDeleteDemoApp(id);
@@ -406,10 +417,72 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       addToast('success', 'Deleted application entry.');
       onRefresh();
     } catch (e: any) {
-      addToast('error', e.message || 'Failed to delete entry.');
+      addToast('error', extractErrorMessage(e, 'Failed to delete entry.'));
       fetchLiveKanbanBoard(); // reload to restore consistency
     } finally {
       setLoadingId(null);
+    }
+  };
+
+  const loadedApplicationIds = COLUMNS.flatMap(column =>
+    columnsState[column.id].items.map(application => application.id)
+  );
+
+  const allLoadedSelected = loadedApplicationIds.length > 0 &&
+    loadedApplicationIds.every(id => selectedIds.has(id));
+
+  const toggleApplicationSelection = (id: number) => {
+    setSelectedIds(previous => {
+      const next = new Set(previous);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAllLoaded = () => {
+    setSelectedIds(previous => {
+      const next = new Set(previous);
+      if (allLoadedSelected) {
+        loadedApplicationIds.forEach(id => next.delete(id));
+      } else {
+        loadedApplicationIds.forEach(id => next.add(id));
+      }
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0 || isBulkDeleting) return;
+
+    if (!confirm(`Delete ${ids.length} selected application${ids.length === 1 ? '' : 's'}?`)) {
+      return;
+    }
+
+    if (isDemoMode && onDeleteDemoApp) {
+      ids.forEach(id => onDeleteDemoApp(id));
+      setSelectedIds(new Set());
+      setSelectedApp(null);
+      addToast('success', 'Selected applications deleted (Demo Mode).');
+      return;
+    }
+
+    setIsBulkDeleting(true);
+    try {
+      await deleteApplicationsBulk(ids);
+      setSelectedIds(new Set());
+      setSelectedApp(null);
+      addToast('success', 'Selected applications deleted.');
+      await fetchLiveKanbanBoard();
+      onRefresh();
+    } catch (e: any) {
+      addToast('error', extractErrorMessage(e, 'Failed to delete selected applications.'));
+    } finally {
+      setIsBulkDeleting(false);
     }
   };
 
@@ -433,6 +506,21 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         </div>
 
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 7, color: 'var(--text-body)', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
+            <input
+              type="checkbox"
+              checked={allLoadedSelected}
+              onChange={toggleSelectAllLoaded}
+              disabled={loadedApplicationIds.length === 0 || isBulkDeleting}
+            />
+            Select all loaded
+          </label>
+          {selectedIds.size > 0 && (
+            <button className="btn btn-danger" onClick={handleBulkDelete} disabled={isBulkDeleting}>
+              {isBulkDeleting ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+              Delete selected ({selectedIds.size})
+            </button>
+          )}
           <button className="btn btn-secondary" onClick={onOpenScraper}>
             <Globe size={15} color="#38bdf8" /> Add via URL
           </button>
@@ -555,6 +643,13 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                       {/* Top Row: Company Avatar + Name + Status Pill */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(app.id)}
+                            onChange={() => toggleApplicationSelection(app.id)}
+                            onClick={e => e.stopPropagation()}
+                            aria-label={`Select ${app.job?.title || 'application'}`}
+                          />
                           <div style={{
                             width: 32, height: 32, borderRadius: '50%',
                             background: `linear-gradient(135deg, ${theme.bg} 0%, rgba(255, 255, 255, 0.05) 100%)`,

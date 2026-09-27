@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, PlusCircle } from 'lucide-react';
-import { createManualApplication } from '../api/client';
+import { createManualApplication, extractErrorMessage } from '../api/client';
 import type { ApplicationStatus } from '../api/client';
 import { sanitizeInput, isValidUrl } from '../security/sanitizer';
 
@@ -41,7 +41,7 @@ export const ManualAddModal: React.FC<ManualAddModalProps> = ({ onClose, onSucce
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Failed to create application.');
+      setError(extractErrorMessage(err, 'Failed to create application.'));
     } finally {
       setLoading(false);
     }

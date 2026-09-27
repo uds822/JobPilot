@@ -1,3 +1,6 @@
 fastapi[standard]
 psycopg[binary]
 alembic
+sqlalchemy[asyncio]
+redis
+pwdlib[argon2]

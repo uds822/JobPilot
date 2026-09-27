@@ -3,6 +3,7 @@ import {
   Globe, MapPin, Plus, Check, Search, Compass, Briefcase, ArrowUpRight
 } from 'lucide-react';
 import type { Job, Company, EnrichedApplication } from '../api/client';
+import { extractErrorMessage } from '../api/client';
 
 interface ExploreJobsProps {
   jobs: Job[];
@@ -66,7 +67,7 @@ export const ExploreJobs: React.FC<ExploreJobsProps> = ({
     try {
       await onTrackJob(job, company);
     } catch (e: any) {
-      addToast('error', e.message || 'Failed to track application');
+      addToast('error', extractErrorMessage(e, 'Failed to track application'));
     } finally {
       setTrackingJobId(null);
     }

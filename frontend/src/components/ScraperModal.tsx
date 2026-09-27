@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Globe, Sparkles, CheckCircle2, ShieldCheck } from 'lucide-react';
-import { previewJobUrl, confirmJobUrl } from '../api/client';
+import { previewJobUrl, confirmJobUrl, extractErrorMessage } from '../api/client';
 import type { ScrapePreview, ApplicationStatus } from '../api/client';
 import { isValidUrl, sanitizeInput } from '../security/sanitizer';
 
@@ -31,7 +31,7 @@ export const ScraperModal: React.FC<ScraperModalProps> = ({ onClose, onSuccess, 
       const data = await previewJobUrl(url);
       setPreview(data);
     } catch (err: any) {
-      setError(err.message || 'Could not scrape job page.');
+      setError(extractErrorMessage(err, 'Could not scrape job page.'));
     } finally {
       setLoading(false);
     }
@@ -58,7 +58,7 @@ export const ScraperModal: React.FC<ScraperModalProps> = ({ onClose, onSuccess, 
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Failed to save application.');
+      setError(extractErrorMessage(err, 'Failed to save application.'));
     } finally {
       setLoading(false);
     }
