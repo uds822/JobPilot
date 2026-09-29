@@ -8,6 +8,8 @@ from app.routers.companies import router as companies_router
 from app.routers.users import router as users_router
 from app.routers.auth import router as auth_router
 from app.routers.application import router as application_router
+from app.ai_job_search import ai_jobs_router
+from app.company_watch import models as company_watch_models
 
 from app.exceptions import (
     AppException,
@@ -30,27 +32,11 @@ setup_logging()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # LIFESPAN — App Startup & Shutdown
-#
-# `lifespan` is a FastAPI concept for managing resources that live for the
-# entire duration of the app (not per-request).
-#
-# Structure:
-#   Everything BEFORE yield  → runs once at startup
-#   yield                    → the app is alive and serving requests here
-#   Everything AFTER yield   → runs once at shutdown (even if an error occurs)
-#
-# Why not @app.on_event("startup")?
-#   That older pattern is deprecated. Lifespan is the modern replacement.
-#   It also guarantees shutdown code runs even if startup partially fails.
 # ─────────────────────────────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # ── STARTUP ──────────────────────────────────────────────────────────
-    # Nothing to pre-warm right now.
-    # The httpx AsyncClient is created lazily on first request (_get_http_client).
-    # The database engine is also created at module import time.
     logger.info("JobTracker API starting up...")
-
     yield   # ← App is live. All requests are handled here.
 
     # ── SHUTDOWN ─────────────────────────────────────────────────────────
@@ -190,3 +176,4 @@ app.include_router(companies_router)
 app.include_router(users_router)
 app.include_router(auth_router)
 app.include_router(application_router)
+app.include_router(ai_jobs_router)

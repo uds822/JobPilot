@@ -1,6 +1,9 @@
+import logging
+import redis
 from fastapi import HTTPException
 from app.core.redis import redis_client
 
+logger = logging.getLogger(__name__)
 
 RATE_LIMIT_SCRIPT = """
 local count = redis.call('INCR', KEYS[1])
@@ -18,12 +21,16 @@ def check_rate_limit(
     limit: int,
     window_seconds: int,
 ):
-    count = redis_client.eval(
-        RATE_LIMIT_SCRIPT,
-        1,
-        key,
-        window_seconds,
-    )
+    try:
+        count = redis_client.eval(
+            RATE_LIMIT_SCRIPT,
+            1,
+            key,
+            window_seconds,
+        )
+    except (redis.exceptions.ConnectionError, redis.exceptions.RedisError, Exception) as e:
+        logger.warning("Redis rate limiter unavailable (%s); bypassing rate limit check.", e)
+        return
 
     if count > limit:
         raise HTTPException(

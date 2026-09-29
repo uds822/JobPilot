@@ -326,3 +326,145 @@ export async function getCompany(id: number): Promise<Company> {
   const res = await apiClient.get(`/companies/${id}`);
   return res.data;
 }
+
+// ─── AI Job Search ────────────────────────────────────────────────────────────
+
+export interface AIJobMatchCard {
+  id: number;
+  match_score: number;
+  match_level: string;
+  match_reasoning?: string;
+  callback_likelihood: string;
+  strengths: string[];
+  gaps: string[];
+  status: 'new' | 'viewed' | 'saved' | 'dismissed' | 'applied';
+  is_saved: boolean;
+  skills_overlap: number;
+  experience_fit: number;
+  role_similarity: number;
+  location_fit: number;
+  industry_fit: number;
+  company_type_fit: number;
+  posting_freshness: number;
+  job_id: number;
+  title: string;
+  company: string;
+  location: string;
+  remote: boolean;
+  description?: string;
+  salary_min?: number;
+  salary_max?: number;
+  salary_currency?: string;
+  salary_interval?: string;
+  apply_url: string;
+  source: string;
+  posted_date?: string;
+  discovery_channel: string;
+  last_seen_at?: string;
+  is_active: boolean;
+  is_expired: boolean;
+  application_id?: number;
+  first_shown_at?: string;
+  last_shown_at?: string;
+  show_count: number;
+  industry: string;
+  company_type: string;
+}
+
+export interface AISearchRunStatus {
+  id: number;
+  status: 'queued' | 'running' | 'completed' | 'failed';
+  started_at: string;
+  completed_at?: string;
+  error_message?: string;
+  jobs_fetched: number;
+  jobs_after_dedupe: number;
+  jobs_after_validity: number;
+  jobs_after_hard_filters: number;
+  jobs_scored: number;
+  jobs_returned: number;
+}
+
+export interface AIProfileResponse {
+  has_profile: boolean;
+  parsed_profile?: {
+    skills: string[];
+    years_experience: number;
+    recent_titles: string[];
+    seniority_level: string;
+    preferred_locations: string[];
+    remote_preference: string;
+    preferred_industries: string[];
+    preferred_company_types: string[];
+    salary_expectation_min?: number;
+    salary_expectation_max?: number;
+    salary_currency?: string;
+  };
+  user_preferences?: Record<string, any>;
+}
+
+export async function uploadResume(file: File): Promise<any> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await apiClient.post('/api/ai-jobs/upload-resume', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return res.data;
+}
+
+export async function getAIProfile(): Promise<AIProfileResponse> {
+  const res = await apiClient.get('/api/ai-jobs/profile');
+  return res.data;
+}
+
+export async function updateAIPreferences(preferences: {
+  years_experience?: number;
+  preferred_industries?: string[];
+  preferred_company_types?: string[];
+  remote_preference?: string;
+  target_location?: string;
+  preferred_locations?: string[];
+  target_company_name?: string;
+  salary_expectation_min?: number;
+  salary_expectation_max?: number;
+}): Promise<any> {
+  const res = await apiClient.put('/api/ai-jobs/preferences', preferences);
+  return res.data;
+}
+
+export async function triggerAISearch(): Promise<AISearchRunStatus> {
+  const res = await apiClient.post('/api/ai-jobs/search');
+  return res.data;
+}
+
+export async function getAISearchRunStatus(runId: number): Promise<AISearchRunStatus> {
+  const res = await apiClient.get(`/api/ai-jobs/runs/${runId}`);
+  return res.data;
+}
+
+export async function getAIFoundJobs(params?: {
+  view?: 'for_you' | 'top_matches' | 'new' | 'all_active' | 'all_unapplied' | 'saved' | 'applied';
+  industry?: string;
+  company_type?: string;
+  company_name?: string;
+  min_score?: number;
+  min_salary?: number;
+  remote_only?: boolean;
+  sort_by?: string;
+  offset?: number;
+  limit?: number;
+}): Promise<AIJobMatchCard[]> {
+  const res = await apiClient.get('/api/ai-jobs', { params });
+  return res.data;
+}
+
+export async function updateAIMatchAction(matchId: number, action: 'save' | 'unsave' | 'dismiss' | 'apply'): Promise<{
+  match_id: number;
+  job_id: number;
+  status: AIJobMatchCard['status'];
+  is_saved: boolean;
+  application_id?: number;
+}> {
+  const res = await apiClient.post(`/api/ai-jobs/matches/${matchId}/action`, { action });
+  return res.data;
+}

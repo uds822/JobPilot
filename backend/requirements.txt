@@ -3,4 +3,7 @@ psycopg[binary]
 alembic
 sqlalchemy[asyncio]
 redis
+httpx>=0.28,<0.29
+httpcore>=1.0,<1.1
+beautifulsoup4>=4.12,<5
 pwdlib[argon2]

@@ -1,4 +1,3 @@
-import asyncio
 from sqlalchemy import delete, select, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -116,6 +115,38 @@ async def confirm_application_from_url(
     )
 
 
+async def create_application_from_ai_job(
+    ai_job,
+    current_user: User,
+    db: AsyncSession,
+):
+    """Idempotently add a canonical AI job to the existing tracking board."""
+    existing = await db.scalar(
+        select(Application)
+        .join(Job, Job.id == Application.job_id)
+        .where(
+            Application.user_id == current_user.id,
+            Job.job_url == ai_job.apply_url,
+        )
+        .limit(1)
+    )
+    if existing is not None:
+        return existing
+
+    return await _create_application(
+        company_name=ai_job.company,
+        title=ai_job.title,
+        location=ai_job.location,
+        description=ai_job.description,
+        job_url=ai_job.apply_url,
+        status=ApplicationStatus.APPLIED,
+        notes="Added from AI Job Search",
+        current_user=current_user,
+        db=db,
+        commit=False,
+    )
+
+
 async def _create_application(
     company_name: str,
     title: str,
@@ -126,6 +157,7 @@ async def _create_application(
     notes: str | None,
     current_user: User,
     db: AsyncSession,
+    commit: bool = True,
 ):
     """
     Shared application creation logic.
@@ -260,8 +292,11 @@ async def _create_application(
         # 7. Commit transaction
         # -----------------------------------------------------
 
-        await db.commit()
-        await db.refresh(application)
+        if commit:
+            await db.commit()
+            await db.refresh(application)
+        else:
+            await db.flush()
         logger.info(
             "Application created successfully | user_id=%s | job_id=%s | application_id=%s",
             current_user.id,
@@ -325,17 +360,12 @@ async def get_kanban_board_data(
     current_user: User,
     limit_per_status: int = 20,
 ) -> dict:
-    """
-    Fetch Kanban board data for ALL 5 status columns CONCURRENTLY.
-
-    Old approach: 5 sequential DB queries  → ~100ms
-    New approach: 5 concurrent DB queries  → ~20ms  (5x faster)
-    """
+    """Fetch each Board column using the request's database session."""
     statuses = ["APPLIED", "INTERVIEWING", "OFFERED", "REJECTED", "WITHDRAWN"]
 
-    # Build 5 coroutines — one per status column (not yet running!)
-    tasks = [
-        get_user_applications_paginated(
+    # An AsyncSession cannot execute concurrent queries.
+    results = [
+        await get_user_applications_paginated(
             db=db,
             current_user=current_user,
             status=s,
@@ -345,10 +375,6 @@ async def get_kanban_board_data(
         for s in statuses
     ]
 
-    # Fire all 5 at the SAME TIME — event loop switches between them
-    results = await asyncio.gather(*tasks)
-
-    # Zip statuses with their results and build the response dict
     return {
         status.lower(): data
         for status, data in zip(statuses, results)

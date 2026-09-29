@@ -11,6 +11,8 @@ from app.models.jobs import Job
 from app.models.companies import Company
 from app.models.users import User
 from app.models.applications import Application
+from app.ai_job_search import models as ai_job_models
+from app.company_watch import models as company_watch_models
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -74,7 +76,11 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            compare_type=True,
+        )
 
         with context.begin_transaction():
             context.run_migrations()

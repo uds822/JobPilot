@@ -7,6 +7,7 @@ import { AuthModal } from './components/AuthModal';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { SecurityPanel } from './components/SecurityPanel';
 import { ExploreJobs } from './components/ExploreJobs';
+import { AIFoundJobs } from './components/AIFoundJobs';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastContainer } from './components/Toast';
 import type { ToastMessage } from './components/Toast';
@@ -26,7 +27,7 @@ import {
 import type { User, EnrichedApplication, Job, Company } from './api/client';
 import { Sparkles, Lock, LogIn, ArrowRight, Compass } from 'lucide-react';
 
-type Tab = 'board' | 'explore' | 'scraper' | 'analytics' | 'security';
+type Tab = 'board' | 'ai-jobs' | 'explore' | 'scraper' | 'analytics' | 'security';
 
 const App: React.FC = () => {
   const [tab, setTab] = useState<Tab>('board');
@@ -286,6 +287,45 @@ const App: React.FC = () => {
                   onDeleteDemoApp={handleDeleteDemoApp}
                 />
               </div>
+            )
+          )}
+
+          {/* AI FOUND JOBS TAB */}
+          {tab === 'ai-jobs' && (
+            !user ? (
+              <div style={{
+                maxWidth: 520, margin: '60px auto', padding: '40px 32px', textAlign: 'center',
+                background: 'var(--bg-card)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-lg)',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
+                boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+              }}>
+                <div style={{
+                  width: 60, height: 60, borderRadius: '50%',
+                  background: 'rgba(99, 102, 241, 0.12)', border: '1px solid rgba(99, 102, 241, 0.3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#818cf8',
+                }}>
+                  <Sparkles size={28} />
+                </div>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff' }}>
+                  AI Job Search Requires Sign In
+                </h2>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', lineHeight: 1.6 }}>
+                  Upload your resume and let our AI engine scan live job boards, score matches with your profile using LLM analysis, and surface the best opportunities for you.
+                </p>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setIsAuthOpen(true)}
+                  style={{ marginTop: 8, padding: '10px 28px', width: '100%', justifyContent: 'center' }}
+                >
+                  <LogIn size={16} /> Sign In to Use AI Job Search
+                </button>
+              </div>
+            ) : (
+              <AIFoundJobs
+                onToast={(msg, type) => addToast(type === 'error' ? 'error' : 'success', msg)}
+                onApplicationCreated={fetchApplications}
+                onOpenBoard={() => setTab('board')}
+              />
             )
           )}
 

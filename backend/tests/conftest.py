@@ -8,8 +8,10 @@ os.environ["ALGORITHM"] = "HS256"
 os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"] = "60"
 
 import pytest
+from alembic import command
+from alembic.config import Config
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import Session, sessionmaker
 
 from main import app
@@ -41,6 +43,14 @@ def setup_test_database():
     """
     Session-scoped fixture to create all database tables in jobtracker_test at test start.
     """
+    tables = set(inspect(test_engine).get_table_names())
+    alembic_config = Config(os.path.join(os.path.dirname(__file__), "..", "alembic.ini"))
+    alembic_config.set_main_option("sqlalchemy.url", TEST_DATABASE_URL)
+    if tables and "alembic_version" not in tables:
+        # Older local test databases were created by metadata and have no
+        # revision marker. Treat that known schema as the pre-extension head.
+        command.stamp(alembic_config, "a1000cw00003")
+    command.upgrade(alembic_config, "head")
     Base.metadata.create_all(bind=test_engine)
     yield
     # Optionally drop tables or leave intact for inspection

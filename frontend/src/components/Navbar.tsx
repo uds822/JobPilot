@@ -2,7 +2,7 @@ import React from 'react';
 import { Briefcase, LayoutGrid, Globe, BarChart2, Shield, LogIn, LogOut, Sparkles, Lock, Compass } from 'lucide-react';
 import type { User } from '../api/client';
 
-type Tab = 'board' | 'explore' | 'scraper' | 'analytics' | 'security';
+type Tab = 'board' | 'ai-jobs' | 'explore' | 'scraper' | 'analytics' | 'security';
 
 interface NavbarProps {
   activeTab: Tab;
@@ -25,6 +25,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const tabs: { id: Tab; label: string; Icon: React.ElementType; requiresAuth?: boolean }[] = [
     { id: 'board', label: 'Board', Icon: LayoutGrid },
+    { id: 'ai-jobs', label: 'AI Found Jobs', Icon: Sparkles },
     { id: 'explore', label: 'Explore Jobs', Icon: Compass, requiresAuth: true },
     { id: 'scraper', label: 'URL Scraper', Icon: Globe },
     { id: 'analytics', label: 'Analytics', Icon: BarChart2 },
@@ -32,7 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   ];
 
   return (
-    <header style={{
+    <header className="app-navbar" style={{
       background: 'rgba(8, 12, 24, 0.75)',
       backdropFilter: 'blur(20px)',
       WebkitBackdropFilter: 'blur(20px)',
@@ -43,7 +44,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       zIndex: 100,
       boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6)',
     }}>
-      <div style={{
+      <div className="app-navbar-inner" style={{
         maxWidth: 1300,
         margin: '0 auto',
         display: 'flex',
@@ -54,6 +55,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Brand Logo */}
         <div
+          className="app-navbar-brand"
           style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', flexShrink: 0 }}
           onClick={() => setActiveTab('board')}
         >
@@ -79,10 +81,10 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Divider */}
-        <div style={{ width: 1, height: 26, background: 'rgba(255, 255, 255, 0.1)', flexShrink: 0 }} />
+        <div className="app-navbar-divider" style={{ width: 1, height: 26, background: 'rgba(255, 255, 255, 0.1)', flexShrink: 0 }} />
 
         {/* Nav Tabs */}
-        <nav style={{ display: 'flex', gap: 6, flex: 1, alignItems: 'center' }}>
+        <nav className="app-navbar-tabs" style={{ display: 'flex', gap: 6, flex: 1, alignItems: 'center' }}>
           {tabs.map(({ id, label, Icon, requiresAuth }) => {
             const isLocked = requiresAuth && !user;
             const isActive = activeTab === id;
@@ -141,8 +143,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* User section */}
         {user ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-            <span style={{ fontSize: '0.86rem', color: '#ffffff', fontWeight: 600 }}>
+          <div className="app-navbar-account" style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+            <span title={user.username} style={{ fontSize: '0.86rem', color: '#ffffff', fontWeight: 600 }}>
               {user.username}
             </span>
             <button className="btn btn-secondary" onClick={onLogout} style={{ padding: '6px 14px', fontSize: '0.8rem' }}>

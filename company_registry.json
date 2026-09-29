@@ -1,0 +1,2208 @@
+{
+  "schema_version": 1,
+  "companies": [
+    {
+      "name": "Google",
+      "aliases": [],
+      "website_url": "https://www.google.com",
+      "careers_url": "https://www.google.com/about/careers/applications/",
+      "categories": [
+        "big_tech"
+      ],
+      "industry": "Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Amazon",
+      "aliases": [],
+      "website_url": "https://www.amazon.com",
+      "careers_url": "https://amazon.jobs/en/",
+      "categories": [
+        "big_tech"
+      ],
+      "industry": "Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Microsoft",
+      "aliases": [],
+      "website_url": "https://www.microsoft.com",
+      "careers_url": "https://careers.microsoft.com/",
+      "categories": [
+        "big_tech"
+      ],
+      "industry": "Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Apple",
+      "aliases": [],
+      "website_url": "https://www.apple.com",
+      "careers_url": "https://www.apple.com/careers/in/",
+      "categories": [
+        "big_tech"
+      ],
+      "industry": "Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Meta",
+      "aliases": [
+        "Meta Platforms",
+        "Facebook"
+      ],
+      "website_url": "https://about.meta.com",
+      "careers_url": "https://www.metacareers.com/",
+      "categories": [
+        "big_tech"
+      ],
+      "industry": "Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Netflix",
+      "aliases": [],
+      "website_url": "https://www.netflix.com",
+      "careers_url": "https://www.jobs.netflix.com/",
+      "categories": [
+        "big_tech"
+      ],
+      "industry": "Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "NVIDIA",
+      "aliases": [
+        "Nvidia"
+      ],
+      "website_url": "https://www.nvidia.com",
+      "careers_url": "https://www.nvidia.com/en-in/about-nvidia/careers/",
+      "categories": [
+        "big_tech",
+        "semiconductor"
+      ],
+      "industry": "Semiconductors",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Adobe",
+      "aliases": [],
+      "website_url": "https://www.adobe.com",
+      "careers_url": "https://careers.adobe.com/",
+      "categories": [
+        "big_tech"
+      ],
+      "industry": "Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Salesforce",
+      "aliases": [],
+      "website_url": "https://www.salesforce.com",
+      "careers_url": "https://careers.salesforce.com/",
+      "categories": [
+        "big_tech"
+      ],
+      "industry": "Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "ServiceNow",
+      "aliases": [],
+      "website_url": "https://www.servicenow.com",
+      "careers_url": "https://careers.servicenow.com/",
+      "categories": [
+        "big_tech"
+      ],
+      "industry": "Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Oracle",
+      "aliases": [],
+      "website_url": "https://www.oracle.com",
+      "careers_url": "https://www.oracle.com/careers/",
+      "categories": [
+        "big_tech"
+      ],
+      "industry": "Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Cisco",
+      "aliases": [],
+      "website_url": "https://www.cisco.com",
+      "careers_url": "https://careers.cisco.com/",
+      "categories": [
+        "big_tech",
+        "networking"
+      ],
+      "industry": "Networking",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Atlassian",
+      "aliases": [],
+      "website_url": "https://www.atlassian.com",
+      "careers_url": "https://www.atlassian.com/company/careers",
+      "categories": [
+        "big_tech"
+      ],
+      "industry": "Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Uber",
+      "aliases": [],
+      "website_url": "https://www.uber.com",
+      "careers_url": "https://jobs.uber.com/",
+      "categories": [
+        "big_tech"
+      ],
+      "industry": "Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "LinkedIn",
+      "aliases": [],
+      "website_url": "https://www.linkedin.com",
+      "careers_url": "https://careers.linkedin.com/",
+      "categories": [
+        "big_tech"
+      ],
+      "industry": "Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "PayPal",
+      "aliases": [],
+      "website_url": "https://www.paypal.com",
+      "careers_url": "https://careers.pypl.com/",
+      "categories": [
+        "big_tech"
+      ],
+      "industry": "Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Intuit",
+      "aliases": [],
+      "website_url": "https://www.intuit.com",
+      "careers_url": "https://www.intuit.com/in/careers/",
+      "categories": [
+        "big_tech"
+      ],
+      "industry": "Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "VMware",
+      "aliases": [
+        "VMware by Broadcom"
+      ],
+      "website_url": "https://www.vmware.com",
+      "careers_url": "https://www.broadcom.com/company/careers",
+      "categories": [
+        "big_tech"
+      ],
+      "industry": "Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "SAP",
+      "aliases": [],
+      "website_url": "https://www.sap.com",
+      "careers_url": "https://www.sap.com/careers/",
+      "categories": [
+        "big_tech"
+      ],
+      "industry": "Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Flipkart",
+      "aliases": [],
+      "website_url": "https://www.flipkart.com",
+      "careers_url": "https://www.flipkartcareers.com/jobslist",
+      "categories": [
+        "product"
+      ],
+      "industry": "E-commerce / Internet",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "PhonePe",
+      "aliases": [],
+      "website_url": "https://www.phonepe.com",
+      "careers_url": "https://www.phonepe.com/careers/",
+      "categories": [
+        "fintech"
+      ],
+      "industry": "Financial Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Razorpay",
+      "aliases": [],
+      "website_url": "https://razorpay.com",
+      "careers_url": "https://razorpay.com/careers/",
+      "categories": [
+        "fintech"
+      ],
+      "industry": "Financial Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Swiggy",
+      "aliases": [],
+      "website_url": "https://www.swiggy.com",
+      "careers_url": "https://careers.swiggy.in/",
+      "categories": [
+        "consumer_internet"
+      ],
+      "industry": "Consumer Internet",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Zomato",
+      "aliases": [],
+      "website_url": "https://www.zomato.com",
+      "careers_url": "https://www.zomato.com/careers",
+      "categories": [
+        "consumer_internet"
+      ],
+      "industry": "Consumer Internet",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Dream11",
+      "aliases": [],
+      "website_url": "https://www.dream11.com",
+      "careers_url": "https://dream11.hire.trakstar.com/",
+      "categories": [
+        "consumer_internet"
+      ],
+      "industry": "Consumer Internet",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "BrowserStack",
+      "aliases": [],
+      "website_url": "https://www.browserstack.com",
+      "careers_url": "https://www.browserstack.com/careers",
+      "categories": [
+        "saas"
+      ],
+      "industry": "Software",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Freshworks",
+      "aliases": [],
+      "website_url": "https://www.freshworks.com",
+      "careers_url": "https://www.freshworks.com/company/careers/",
+      "categories": [
+        "saas"
+      ],
+      "industry": "Software",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Zoho",
+      "aliases": [],
+      "website_url": "https://www.zoho.com",
+      "careers_url": "https://www.zoho.com/careers/",
+      "categories": [
+        "saas"
+      ],
+      "industry": "Software",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Paytm",
+      "aliases": [],
+      "website_url": "https://paytm.com",
+      "careers_url": "https://paytm.com/careers",
+      "categories": [
+        "fintech"
+      ],
+      "industry": "Financial Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Groww",
+      "aliases": [],
+      "website_url": "https://groww.in",
+      "careers_url": "https://groww.in/careers",
+      "categories": [
+        "fintech"
+      ],
+      "industry": "Financial Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": [
+        {
+          "provider": "greenhouse",
+          "identifier": "groww",
+          "source_url": "https://boards-api.greenhouse.io/v1/boards/groww/jobs?content=true",
+          "evidence_url": null
+        }
+      ]
+    },
+    {
+      "name": "CRED",
+      "aliases": [
+        "Cred"
+      ],
+      "website_url": "https://cred.club",
+      "careers_url": "https://careers.cred.club/openings",
+      "categories": [
+        "fintech"
+      ],
+      "industry": "Financial Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": [
+        {
+          "provider": "lever",
+          "identifier": "cred",
+          "source_url": "https://api.lever.co/v0/postings/cred?mode=json",
+          "evidence_url": null
+        }
+      ]
+    },
+    {
+      "name": "Meesho",
+      "aliases": [],
+      "website_url": "https://www.meesho.com",
+      "careers_url": "https://www.meesho.io/jobs",
+      "categories": [
+        "ecommerce"
+      ],
+      "industry": "E-commerce",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": [
+        {
+          "provider": "lever",
+          "identifier": "meesho",
+          "source_url": "https://api.lever.co/v0/postings/meesho?mode=json",
+          "evidence_url": null
+        }
+      ]
+    },
+    {
+      "name": "Zeta",
+      "aliases": [
+        "Zeta Tech"
+      ],
+      "website_url": "https://www.zeta.tech",
+      "careers_url": "https://www.zeta.tech/in/careers",
+      "categories": [
+        "fintech"
+      ],
+      "industry": "Financial Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": [
+        {
+          "provider": "lever",
+          "identifier": "zeta",
+          "source_url": "https://api.lever.co/v0/postings/zeta?mode=json",
+          "evidence_url": null
+        }
+      ]
+    },
+    {
+      "name": "Mindtickle",
+      "aliases": [],
+      "website_url": "https://www.mindtickle.com",
+      "careers_url": "https://jobs.lever.co/mindtickle",
+      "categories": [
+        "saas"
+      ],
+      "industry": "Software",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": [
+        {
+          "provider": "lever",
+          "identifier": "mindtickle",
+          "source_url": "https://api.lever.co/v0/postings/mindtickle?mode=json",
+          "evidence_url": null
+        }
+      ]
+    },
+    {
+      "name": "Postman",
+      "aliases": [],
+      "website_url": "https://www.postman.com",
+      "careers_url": "https://www.postman.com/company/careers/",
+      "categories": [
+        "developer_tools"
+      ],
+      "industry": "Developer Tools",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "InMobi",
+      "aliases": [],
+      "website_url": "https://www.inmobi.com",
+      "careers_url": "https://www.inmobi.com/company/careers",
+      "categories": [
+        "adtech"
+      ],
+      "industry": "Advertising Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Ola",
+      "aliases": [],
+      "website_url": "https://www.olacabs.com",
+      "careers_url": null,
+      "categories": [
+        "mobility"
+      ],
+      "industry": "Mobility",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "OYO",
+      "aliases": [
+        "OYO Rooms"
+      ],
+      "website_url": "https://www.oyorooms.com",
+      "careers_url": null,
+      "categories": [
+        "travel"
+      ],
+      "industry": "Travel Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Juspay",
+      "aliases": [],
+      "website_url": "https://juspay.io",
+      "careers_url": "https://juspay.io/careers",
+      "categories": [
+        "fintech"
+      ],
+      "industry": "Financial Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Chargebee",
+      "aliases": [],
+      "website_url": "https://www.chargebee.com",
+      "careers_url": "https://www.chargebee.com/careers/",
+      "categories": [
+        "saas"
+      ],
+      "industry": "Software",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Whatfix",
+      "aliases": [],
+      "website_url": "https://whatfix.com",
+      "careers_url": "https://whatfix.com/careers",
+      "categories": [
+        "saas"
+      ],
+      "industry": "Software",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Darwinbox",
+      "aliases": [],
+      "website_url": "https://darwinbox.com",
+      "careers_url": "https://darwinbox.com/en-us/careers",
+      "categories": [
+        "saas"
+      ],
+      "industry": "Software",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "HighRadius",
+      "aliases": [],
+      "website_url": "https://www.highradius.com",
+      "careers_url": "https://www.highradius.com/about/career/",
+      "categories": [
+        "saas"
+      ],
+      "industry": "Software",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Hasura",
+      "aliases": [],
+      "website_url": "https://hasura.io",
+      "careers_url": "https://hasura.io/careers",
+      "categories": [
+        "developer_tools"
+      ],
+      "industry": "Developer Tools",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Innovaccer",
+      "aliases": [],
+      "website_url": "https://innovaccer.com",
+      "careers_url": "https://innovaccer.com/careers",
+      "categories": [
+        "healthtech"
+      ],
+      "industry": "Healthcare Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "OfBusiness",
+      "aliases": [],
+      "website_url": "https://www.ofbusiness.com",
+      "careers_url": "https://www.ofbcareers.com/",
+      "categories": [
+        "b2b"
+      ],
+      "industry": "B2B Commerce",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Pine Labs",
+      "aliases": [],
+      "website_url": "https://www.pinelabs.com",
+      "careers_url": "https://www.pinelabs.com/careers",
+      "categories": [
+        "fintech"
+      ],
+      "industry": "Financial Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Policybazaar",
+      "aliases": [],
+      "website_url": "https://www.policybazaar.com",
+      "careers_url": "https://www.policybazaar.com/careers/",
+      "categories": [
+        "fintech"
+      ],
+      "industry": "Financial Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "MakeMyTrip",
+      "aliases": [
+        "MMT"
+      ],
+      "website_url": "https://www.makemytrip.com",
+      "careers_url": "https://careers.makemytrip.com/",
+      "categories": [
+        "travel"
+      ],
+      "industry": "Travel Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Cleartrip",
+      "aliases": [],
+      "website_url": "https://www.cleartrip.com",
+      "careers_url": "https://careers.cleartrip.com/",
+      "categories": [
+        "travel"
+      ],
+      "industry": "Travel Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Myntra",
+      "aliases": [],
+      "website_url": "https://www.myntra.com",
+      "careers_url": "https://jobs.myntra.com/home",
+      "categories": [
+        "ecommerce"
+      ],
+      "industry": "E-commerce",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Nykaa",
+      "aliases": [],
+      "website_url": "https://www.nykaa.com",
+      "careers_url": "https://careers.nykaa.com/",
+      "categories": [
+        "ecommerce"
+      ],
+      "industry": "E-commerce",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Zepto",
+      "aliases": [],
+      "website_url": "https://www.zeptonow.com",
+      "careers_url": "https://www.zepto.com/s/careers",
+      "categories": [
+        "consumer_internet"
+      ],
+      "industry": "Consumer Internet",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Urban Company",
+      "aliases": [
+        "UrbanClap"
+      ],
+      "website_url": "https://www.urbancompany.com",
+      "careers_url": "https://careers.urbancompany.com/",
+      "categories": [
+        "consumer_internet"
+      ],
+      "industry": "Consumer Internet",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Practo",
+      "aliases": [],
+      "website_url": "https://www.practo.com",
+      "careers_url": "https://www.practo.com/company/careers",
+      "categories": [
+        "healthtech"
+      ],
+      "industry": "Healthcare Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Sarvam AI",
+      "aliases": [],
+      "website_url": "https://www.sarvam.ai",
+      "careers_url": "https://www.sarvam.ai/careers",
+      "categories": [
+        "ai_ml"
+      ],
+      "industry": "Artificial Intelligence",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Krutrim",
+      "aliases": [
+        "Ola Krutrim"
+      ],
+      "website_url": "https://www.olakrutrim.com",
+      "careers_url": "https://ai-labs.olakrutrim.com/",
+      "categories": [
+        "ai_ml"
+      ],
+      "industry": "Artificial Intelligence",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Yellow.ai",
+      "aliases": [
+        "Yellow AI"
+      ],
+      "website_url": "https://yellow.ai",
+      "careers_url": "https://yellow.ai/career/",
+      "categories": [
+        "ai_ml"
+      ],
+      "industry": "Artificial Intelligence",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Observe.AI",
+      "aliases": [
+        "Observe AI"
+      ],
+      "website_url": "https://www.observe.ai",
+      "careers_url": "https://www.observe.ai/careers",
+      "categories": [
+        "ai_ml"
+      ],
+      "industry": "Artificial Intelligence",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Haptik",
+      "aliases": [],
+      "website_url": "https://www.haptik.ai",
+      "careers_url": "https://www.haptik.ai/careers",
+      "categories": [
+        "ai_ml"
+      ],
+      "industry": "Artificial Intelligence",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "SigTuple",
+      "aliases": [],
+      "website_url": "https://sigtuple.com",
+      "careers_url": null,
+      "categories": [
+        "ai_ml"
+      ],
+      "industry": "Artificial Intelligence",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Qure.ai",
+      "aliases": [
+        "Qure AI"
+      ],
+      "website_url": "https://www.qure.ai",
+      "careers_url": "https://jobs.qure.ai/",
+      "categories": [
+        "ai_ml"
+      ],
+      "industry": "Artificial Intelligence",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Mad Street Den",
+      "aliases": [],
+      "website_url": "https://madstreetden.com",
+      "careers_url": "https://www.madstreetden.com/careers/",
+      "categories": [
+        "ai_ml"
+      ],
+      "industry": "Artificial Intelligence",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Uniphore",
+      "aliases": [],
+      "website_url": "https://www.uniphore.com",
+      "careers_url": "https://www.uniphore.com/careers/",
+      "categories": [
+        "ai_ml"
+      ],
+      "industry": "Artificial Intelligence",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Fractal Analytics",
+      "aliases": [],
+      "website_url": "https://fractal.ai",
+      "careers_url": "https://fractal.ai/workday-jobs/",
+      "categories": [
+        "ai_ml"
+      ],
+      "industry": "Artificial Intelligence",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Tredence",
+      "aliases": [],
+      "website_url": "https://www.tredence.com",
+      "careers_url": "https://www.tredence.com/company-life",
+      "categories": [
+        "ai_ml"
+      ],
+      "industry": "Artificial Intelligence",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Altimate AI",
+      "aliases": [],
+      "website_url": "https://www.altimate.ai",
+      "careers_url": "https://altimate.ai/company",
+      "categories": [
+        "ai_ml"
+      ],
+      "industry": "Artificial Intelligence",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": [
+        {
+          "provider": "ashby",
+          "identifier": "altimate",
+          "source_url": "https://api.ashbyhq.com/posting-api/job-board/altimate",
+          "evidence_url": null
+        }
+      ]
+    },
+    {
+      "name": "Harvey",
+      "aliases": [],
+      "website_url": "https://www.harvey.ai",
+      "careers_url": "https://www.harvey.ai/careers",
+      "categories": [
+        "ai_ml"
+      ],
+      "industry": "Artificial Intelligence",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": [
+        {
+          "provider": "ashby",
+          "identifier": "harvey",
+          "source_url": "https://api.ashbyhq.com/posting-api/job-board/harvey",
+          "evidence_url": null
+        }
+      ]
+    },
+    {
+      "name": "Snowflake",
+      "aliases": [],
+      "website_url": "https://www.snowflake.com",
+      "careers_url": "https://careers.snowflake.com/",
+      "categories": [
+        "data_cloud"
+      ],
+      "industry": "Data & Cloud",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Databricks",
+      "aliases": [],
+      "website_url": "https://www.databricks.com",
+      "careers_url": "https://www.databricks.com/company/careers",
+      "categories": [
+        "data_ai"
+      ],
+      "industry": "Data & AI",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Confluent",
+      "aliases": [],
+      "website_url": "https://www.confluent.io",
+      "careers_url": "https://careers.confluent.io/",
+      "categories": [
+        "data_infrastructure"
+      ],
+      "industry": "Data Infrastructure",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "HashiCorp",
+      "aliases": [],
+      "website_url": "https://www.hashicorp.com",
+      "careers_url": "https://www.hashicorp.com/careers",
+      "categories": [
+        "cloud_infra"
+      ],
+      "industry": "Cloud Infrastructure",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "MongoDB",
+      "aliases": [],
+      "website_url": "https://www.mongodb.com",
+      "careers_url": "https://www.mongodb.com/company/careers",
+      "categories": [
+        "database"
+      ],
+      "industry": "Databases",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": [
+        {
+          "provider": "greenhouse",
+          "identifier": "mongodb",
+          "source_url": "https://boards-api.greenhouse.io/v1/boards/mongodb/jobs?content=true",
+          "evidence_url": null
+        }
+      ]
+    },
+    {
+      "name": "Elastic",
+      "aliases": [],
+      "website_url": "https://www.elastic.co",
+      "careers_url": "https://www.elastic.co/careers",
+      "categories": [
+        "search"
+      ],
+      "industry": "Search & Analytics",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": [
+        {
+          "provider": "greenhouse",
+          "identifier": "elastic",
+          "source_url": "https://boards-api.greenhouse.io/v1/boards/elastic/jobs?content=true",
+          "evidence_url": null
+        }
+      ]
+    },
+    {
+      "name": "Datadog",
+      "aliases": [],
+      "website_url": "https://www.datadoghq.com",
+      "careers_url": "https://careers.datadoghq.com/",
+      "categories": [
+        "observability"
+      ],
+      "industry": "Observability",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": [
+        {
+          "provider": "greenhouse",
+          "identifier": "datadog",
+          "source_url": "https://boards-api.greenhouse.io/v1/boards/datadog/jobs?content=true",
+          "evidence_url": null
+        }
+      ]
+    },
+    {
+      "name": "Cloudflare",
+      "aliases": [],
+      "website_url": "https://www.cloudflare.com",
+      "careers_url": "https://www.cloudflare.com/careers/",
+      "categories": [
+        "cloud_infra"
+      ],
+      "industry": "Cloud Infrastructure",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": [
+        {
+          "provider": "greenhouse",
+          "identifier": "cloudflare",
+          "source_url": "https://boards-api.greenhouse.io/v1/boards/cloudflare/jobs?content=true",
+          "evidence_url": null
+        }
+      ]
+    },
+    {
+      "name": "Twilio",
+      "aliases": [],
+      "website_url": "https://www.twilio.com",
+      "careers_url": "https://www.twilio.com/en-us/careers",
+      "categories": [
+        "cloud_communications"
+      ],
+      "industry": "Cloud Communications",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": [
+        {
+          "provider": "greenhouse",
+          "identifier": "twilio",
+          "source_url": "https://boards-api.greenhouse.io/v1/boards/twilio/jobs?content=true",
+          "evidence_url": null
+        }
+      ]
+    },
+    {
+      "name": "Okta",
+      "aliases": [],
+      "website_url": "https://www.okta.com",
+      "careers_url": "https://www.okta.com/company/careers/job-listing/",
+      "categories": [
+        "cybersecurity"
+      ],
+      "industry": "Cybersecurity",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": [
+        {
+          "provider": "greenhouse",
+          "identifier": "okta",
+          "source_url": "https://boards-api.greenhouse.io/v1/boards/okta/jobs?content=true",
+          "evidence_url": null
+        }
+      ]
+    },
+    {
+      "name": "CrowdStrike",
+      "aliases": [],
+      "website_url": "https://www.crowdstrike.com",
+      "careers_url": "https://www.crowdstrike.com/en-us/careers/",
+      "categories": [
+        "cybersecurity"
+      ],
+      "industry": "Cybersecurity",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Palo Alto Networks",
+      "aliases": [],
+      "website_url": "https://www.paloaltonetworks.com",
+      "careers_url": "https://jobs.paloaltonetworks.com/",
+      "categories": [
+        "cybersecurity"
+      ],
+      "industry": "Cybersecurity",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Zscaler",
+      "aliases": [],
+      "website_url": "https://www.zscaler.com",
+      "careers_url": "https://www.zscaler.com/careers",
+      "categories": [
+        "cybersecurity"
+      ],
+      "industry": "Cybersecurity",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Rubrik",
+      "aliases": [],
+      "website_url": "https://www.rubrik.com",
+      "careers_url": "https://www.rubrik.com/company/careers",
+      "categories": [
+        "cloud_security"
+      ],
+      "industry": "Cloud Security",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": [
+        {
+          "provider": "greenhouse",
+          "identifier": "rubrik",
+          "source_url": "https://boards-api.greenhouse.io/v1/boards/rubrik/jobs?content=true",
+          "evidence_url": null
+        }
+      ]
+    },
+    {
+      "name": "Samsara",
+      "aliases": [],
+      "website_url": "https://www.samsara.com",
+      "careers_url": "https://www.samsara.com/company/careers",
+      "categories": [
+        "iot"
+      ],
+      "industry": "IoT",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": [
+        {
+          "provider": "greenhouse",
+          "identifier": "samsara",
+          "source_url": "https://boards-api.greenhouse.io/v1/boards/samsara/jobs?content=true",
+          "evidence_url": null
+        }
+      ]
+    },
+    {
+      "name": "Stripe",
+      "aliases": [],
+      "website_url": "https://stripe.com",
+      "careers_url": "https://stripe.com/careers",
+      "categories": [
+        "fintech"
+      ],
+      "industry": "Financial Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": [
+        {
+          "provider": "greenhouse",
+          "identifier": "stripe",
+          "source_url": "https://boards-api.greenhouse.io/v1/boards/stripe/jobs?content=true",
+          "evidence_url": null
+        }
+      ]
+    },
+    {
+      "name": "Airbnb",
+      "aliases": [],
+      "website_url": "https://www.airbnb.com",
+      "careers_url": "https://careers.airbnb.com/",
+      "categories": [
+        "consumer_internet"
+      ],
+      "industry": "Consumer Internet",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": [
+        {
+          "provider": "greenhouse",
+          "identifier": "airbnb",
+          "source_url": "https://boards-api.greenhouse.io/v1/boards/airbnb/jobs?content=true",
+          "evidence_url": null
+        }
+      ]
+    },
+    {
+      "name": "Figma",
+      "aliases": [],
+      "website_url": "https://www.figma.com",
+      "careers_url": "https://www.figma.com/careers/",
+      "categories": [
+        "saas"
+      ],
+      "industry": "Software",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": [
+        {
+          "provider": "greenhouse",
+          "identifier": "figma",
+          "source_url": "https://boards-api.greenhouse.io/v1/boards/figma/jobs?content=true",
+          "evidence_url": null
+        }
+      ]
+    },
+    {
+      "name": "GitHub",
+      "aliases": [],
+      "website_url": "https://github.com",
+      "careers_url": "https://www.github.careers/careers-home",
+      "categories": [
+        "developer_tools"
+      ],
+      "industry": "Developer Tools",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "GitLab",
+      "aliases": [],
+      "website_url": "https://gitlab.com",
+      "careers_url": "https://about.gitlab.com/jobs/",
+      "categories": [
+        "developer_tools"
+      ],
+      "industry": "Developer Tools",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": [
+        {
+          "provider": "greenhouse",
+          "identifier": "gitlab",
+          "source_url": "https://boards-api.greenhouse.io/v1/boards/gitlab/jobs?content=true",
+          "evidence_url": null
+        }
+      ]
+    },
+    {
+      "name": "Docker",
+      "aliases": [],
+      "website_url": "https://www.docker.com",
+      "careers_url": "https://www.docker.com/careers/",
+      "categories": [
+        "developer_tools"
+      ],
+      "industry": "Developer Tools",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Grafana Labs",
+      "aliases": [],
+      "website_url": "https://grafana.com",
+      "careers_url": "https://grafana.com/about/careers/",
+      "categories": [
+        "observability"
+      ],
+      "industry": "Observability",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": [
+        {
+          "provider": "greenhouse",
+          "identifier": "grafanalabs",
+          "source_url": "https://boards-api.greenhouse.io/v1/boards/grafanalabs/jobs?content=true",
+          "evidence_url": null
+        }
+      ]
+    },
+    {
+      "name": "Cockroach Labs",
+      "aliases": [],
+      "website_url": "https://www.cockroachlabs.com",
+      "careers_url": "https://www.cockroachlabs.com/careers/",
+      "categories": [
+        "database"
+      ],
+      "industry": "Databases",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": [
+        {
+          "provider": "greenhouse",
+          "identifier": "cockroachlabs",
+          "source_url": "https://boards-api.greenhouse.io/v1/boards/cockroachlabs/jobs?content=true",
+          "evidence_url": null
+        }
+      ]
+    },
+    {
+      "name": "Canonical",
+      "aliases": [],
+      "website_url": "https://canonical.com",
+      "careers_url": "https://canonical.com/careers",
+      "categories": [
+        "cloud_linux"
+      ],
+      "industry": "Open Source / Linux",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Red Hat",
+      "aliases": [
+        "RedHat"
+      ],
+      "website_url": "https://www.redhat.com",
+      "careers_url": "https://www.redhat.com/en/jobs",
+      "categories": [
+        "enterprise_software"
+      ],
+      "industry": "Enterprise Software",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "JetBrains",
+      "aliases": [],
+      "website_url": "https://www.jetbrains.com",
+      "careers_url": "https://www.jetbrains.com/careers/",
+      "categories": [
+        "developer_tools"
+      ],
+      "industry": "Developer Tools",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "CloudBees",
+      "aliases": [],
+      "website_url": "https://www.cloudbees.com",
+      "careers_url": "https://www.cloudbees.com/careers",
+      "categories": [
+        "devops"
+      ],
+      "industry": "DevOps",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Walmart Global Tech",
+      "aliases": [],
+      "website_url": "https://tech.walmart.com",
+      "careers_url": "https://tech.walmart.com/content/walmart-global-tech/en_us/careers.html",
+      "categories": [
+        "gcc"
+      ],
+      "industry": "Retail / Global Capability Center",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "JPMorgan Chase",
+      "aliases": [
+        "JPMorgan",
+        "JP Morgan",
+        "JPMC"
+      ],
+      "website_url": "https://www.jpmorganchase.com",
+      "careers_url": "https://www.jpmorganchase.com/careers",
+      "categories": [
+        "banking"
+      ],
+      "industry": "Banking",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Goldman Sachs",
+      "aliases": [],
+      "website_url": "https://www.goldmansachs.com",
+      "careers_url": "https://www.goldmansachs.com/careers",
+      "categories": [
+        "banking"
+      ],
+      "industry": "Banking",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Morgan Stanley",
+      "aliases": [],
+      "website_url": "https://www.morganstanley.com",
+      "careers_url": "https://www.morganstanley.com/people/",
+      "categories": [
+        "banking"
+      ],
+      "industry": "Banking",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "American Express",
+      "aliases": [],
+      "website_url": "https://www.americanexpress.com",
+      "careers_url": "https://careers.americanexpress.com/",
+      "categories": [
+        "fintech"
+      ],
+      "industry": "Financial Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Visa",
+      "aliases": [],
+      "website_url": "https://www.visa.com",
+      "careers_url": "https://corporate.visa.com/en/careers.html",
+      "categories": [
+        "payments"
+      ],
+      "industry": "Payments",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Mastercard",
+      "aliases": [],
+      "website_url": "https://www.mastercard.com",
+      "careers_url": "https://careers.mastercard.com/us/en",
+      "categories": [
+        "payments"
+      ],
+      "industry": "Payments",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Wells Fargo",
+      "aliases": [],
+      "website_url": "https://www.wellsfargo.com",
+      "careers_url": "https://www.wellsfargojobs.com/en/",
+      "categories": [
+        "banking"
+      ],
+      "industry": "Banking",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Bank of America",
+      "aliases": [
+        "BofA"
+      ],
+      "website_url": "https://www.bankofamerica.com",
+      "careers_url": "https://careers.bankofamerica.com/en-us",
+      "categories": [
+        "banking"
+      ],
+      "industry": "Banking",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Barclays",
+      "aliases": [],
+      "website_url": "https://www.barclays.com",
+      "careers_url": "https://search.jobs.barclays/",
+      "categories": [
+        "banking"
+      ],
+      "industry": "Banking",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Deutsche Bank",
+      "aliases": [],
+      "website_url": "https://www.db.com",
+      "careers_url": "https://careers.db.com/",
+      "categories": [
+        "banking"
+      ],
+      "industry": "Banking",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "UBS",
+      "aliases": [],
+      "website_url": "https://www.ubs.com",
+      "careers_url": "https://www.ubs.com/global/en/careers.html",
+      "categories": [
+        "banking"
+      ],
+      "industry": "Banking",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "HSBC",
+      "aliases": [],
+      "website_url": "https://www.hsbc.com",
+      "careers_url": "https://apply.careers.hsbc.com/",
+      "categories": [
+        "banking"
+      ],
+      "industry": "Banking",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Standard Chartered",
+      "aliases": [
+        "StanChart"
+      ],
+      "website_url": "https://www.sc.com",
+      "careers_url": "https://www.sc.com/en/global-careers/",
+      "categories": [
+        "banking"
+      ],
+      "industry": "Banking",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "BNY",
+      "aliases": [
+        "BNY Mellon"
+      ],
+      "website_url": "https://www.bny.com",
+      "careers_url": "https://www.bny.com/corporate/global/en/about-us/careers/work-with-us.html",
+      "categories": [
+        "banking"
+      ],
+      "industry": "Banking",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Fidelity Investments",
+      "aliases": [],
+      "website_url": "https://www.fidelity.com",
+      "careers_url": "https://jobs.fidelity.com/in/",
+      "categories": [
+        "fintech"
+      ],
+      "industry": "Financial Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "BlackRock",
+      "aliases": [],
+      "website_url": "https://www.blackrock.com",
+      "careers_url": "https://careers.blackrock.com/",
+      "categories": [
+        "fintech"
+      ],
+      "industry": "Financial Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Capital One",
+      "aliases": [],
+      "website_url": "https://www.capitalone.com",
+      "careers_url": "https://www.capitalonecareers.com/",
+      "categories": [
+        "fintech"
+      ],
+      "industry": "Financial Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Target",
+      "aliases": [],
+      "website_url": "https://www.target.com",
+      "careers_url": "https://corporate.target.com/careers",
+      "categories": [
+        "gcc"
+      ],
+      "industry": "Retail / Global Capability Center",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Lowe's",
+      "aliases": [
+        "Lowes"
+      ],
+      "website_url": "https://www.lowes.com",
+      "careers_url": "https://talent.lowes.com/in/en",
+      "categories": [
+        "gcc"
+      ],
+      "industry": "Retail / Global Capability Center",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Tesco",
+      "aliases": [],
+      "website_url": "https://www.tesco.com",
+      "careers_url": "https://www.tesco.com/careers/en-IN/india",
+      "categories": [
+        "gcc"
+      ],
+      "industry": "Retail / Global Capability Center",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "IKEA",
+      "aliases": [],
+      "website_url": "https://www.ikea.com",
+      "careers_url": "https://jobs.ikea.com/en",
+      "categories": [
+        "gcc"
+      ],
+      "industry": "Retail / Global Capability Center",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Wayfair",
+      "aliases": [],
+      "website_url": "https://www.wayfair.com",
+      "careers_url": "https://www.wayfair.com/careers/jobs",
+      "categories": [
+        "ecommerce"
+      ],
+      "industry": "E-commerce",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "AMD",
+      "aliases": [],
+      "website_url": "https://www.amd.com",
+      "careers_url": "https://careers.amd.com/careers-home/",
+      "categories": [
+        "semiconductor"
+      ],
+      "industry": "Semiconductors",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Intel",
+      "aliases": [],
+      "website_url": "https://www.intel.com",
+      "careers_url": "https://jobs.intel.com/",
+      "categories": [
+        "semiconductor"
+      ],
+      "industry": "Semiconductors",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Qualcomm",
+      "aliases": [],
+      "website_url": "https://www.qualcomm.com",
+      "careers_url": "https://www.qualcomm.com/company/careers",
+      "categories": [
+        "semiconductor"
+      ],
+      "industry": "Semiconductors",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Broadcom",
+      "aliases": [],
+      "website_url": "https://www.broadcom.com",
+      "careers_url": "https://www.broadcom.com/company/careers",
+      "categories": [
+        "semiconductor"
+      ],
+      "industry": "Semiconductors",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Texas Instruments",
+      "aliases": [],
+      "website_url": "https://www.ti.com",
+      "careers_url": "https://careers.ti.com/en/sites/CX",
+      "categories": [
+        "semiconductor"
+      ],
+      "industry": "Semiconductors",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Micron",
+      "aliases": [],
+      "website_url": "https://www.micron.com",
+      "careers_url": "https://careers.micron.com/careers",
+      "categories": [
+        "semiconductor"
+      ],
+      "industry": "Semiconductors",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Applied Materials",
+      "aliases": [],
+      "website_url": "https://www.appliedmaterials.com",
+      "careers_url": "https://www.appliedmaterials.com/in/en/careers.html",
+      "categories": [
+        "semiconductor"
+      ],
+      "industry": "Semiconductors",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Synopsys",
+      "aliases": [],
+      "website_url": "https://www.synopsys.com",
+      "careers_url": "https://careers.synopsys.com/",
+      "categories": [
+        "semiconductor"
+      ],
+      "industry": "Semiconductors",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Cadence",
+      "aliases": [],
+      "website_url": "https://www.cadence.com",
+      "careers_url": "https://www.cadence.com/en_US/home/company/careers.html",
+      "categories": [
+        "semiconductor"
+      ],
+      "industry": "Semiconductors",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Arm",
+      "aliases": [
+        "Arm Holdings"
+      ],
+      "website_url": "https://www.arm.com",
+      "careers_url": "https://careers.arm.com/",
+      "categories": [
+        "semiconductor"
+      ],
+      "industry": "Semiconductors",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Samsung",
+      "aliases": [],
+      "website_url": "https://www.samsung.com",
+      "careers_url": "https://www.samsung.com/in/about-us/careers/",
+      "categories": [
+        "hardware"
+      ],
+      "industry": "Hardware",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Dell Technologies",
+      "aliases": [
+        "Dell"
+      ],
+      "website_url": "https://www.dell.com",
+      "careers_url": "https://jobs.dell.com/",
+      "categories": [
+        "hardware"
+      ],
+      "industry": "Hardware",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "HP",
+      "aliases": [
+        "HP Inc"
+      ],
+      "website_url": "https://www.hp.com",
+      "careers_url": "https://apply.hp.com/careers",
+      "categories": [
+        "hardware"
+      ],
+      "industry": "Hardware",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Ericsson",
+      "aliases": [],
+      "website_url": "https://www.ericsson.com",
+      "careers_url": "https://jobs.ericsson.com/",
+      "categories": [
+        "telecom"
+      ],
+      "industry": "Telecommunications",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Nokia",
+      "aliases": [],
+      "website_url": "https://www.nokia.com",
+      "careers_url": "https://www.nokia.com/careers/",
+      "categories": [
+        "telecom"
+      ],
+      "industry": "Telecommunications",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Accenture",
+      "aliases": [],
+      "website_url": "https://www.accenture.com",
+      "careers_url": "https://www.accenture.com/in-en/careers",
+      "categories": [
+        "consulting"
+      ],
+      "industry": "Consulting",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Deloitte",
+      "aliases": [],
+      "website_url": "https://www.deloitte.com",
+      "careers_url": "https://www.deloitte.com/global/en/careers.html",
+      "categories": [
+        "consulting"
+      ],
+      "industry": "Consulting",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "PwC",
+      "aliases": [
+        "PricewaterhouseCoopers"
+      ],
+      "website_url": "https://www.pwc.com",
+      "careers_url": "https://www.pwc.com/gx/en/careers.html",
+      "categories": [
+        "consulting"
+      ],
+      "industry": "Consulting",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "EY",
+      "aliases": [
+        "Ernst & Young"
+      ],
+      "website_url": "https://www.ey.com",
+      "careers_url": "https://www.ey.com/en_in/careers",
+      "categories": [
+        "consulting"
+      ],
+      "industry": "Consulting",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "KPMG",
+      "aliases": [],
+      "website_url": "https://kpmg.com",
+      "careers_url": "https://kpmg.com/in/en/careers.html",
+      "categories": [
+        "consulting"
+      ],
+      "industry": "Consulting",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "McKinsey & Company",
+      "aliases": [
+        "McKinsey"
+      ],
+      "website_url": "https://www.mckinsey.com",
+      "careers_url": "https://www.mckinsey.com/careers/home",
+      "categories": [
+        "consulting"
+      ],
+      "industry": "Consulting",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "BCG",
+      "aliases": [
+        "Boston Consulting Group"
+      ],
+      "website_url": "https://www.bcg.com",
+      "careers_url": "https://careers.bcg.com/global/en",
+      "categories": [
+        "consulting"
+      ],
+      "industry": "Consulting",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Bain & Company",
+      "aliases": [
+        "Bain"
+      ],
+      "website_url": "https://www.bain.com",
+      "careers_url": "https://www.bain.com/careers/",
+      "categories": [
+        "consulting"
+      ],
+      "industry": "Consulting",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "TCS",
+      "aliases": [
+        "Tata Consultancy Services"
+      ],
+      "website_url": "https://www.tcs.com",
+      "careers_url": "https://www.tcs.com/careers/india",
+      "categories": [
+        "it_services"
+      ],
+      "industry": "IT Services",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Infosys",
+      "aliases": [],
+      "website_url": "https://www.infosys.com",
+      "careers_url": "https://www.infosys.com/careers.html",
+      "categories": [
+        "it_services"
+      ],
+      "industry": "IT Services",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Wipro",
+      "aliases": [],
+      "website_url": "https://www.wipro.com",
+      "careers_url": "https://careers.wipro.com/",
+      "categories": [
+        "it_services"
+      ],
+      "industry": "IT Services",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "HCLTech",
+      "aliases": [
+        "HCL Technologies"
+      ],
+      "website_url": "https://www.hcltech.com",
+      "careers_url": "https://careers.hcltech.com/go/India/9553955/",
+      "categories": [
+        "it_services"
+      ],
+      "industry": "IT Services",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Tech Mahindra",
+      "aliases": [
+        "TechM"
+      ],
+      "website_url": "https://www.techmahindra.com",
+      "careers_url": "https://careers.techmahindra.com/",
+      "categories": [
+        "it_services"
+      ],
+      "industry": "IT Services",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Cognizant",
+      "aliases": [],
+      "website_url": "https://www.cognizant.com",
+      "careers_url": "https://careers.cognizant.com/india-en/",
+      "categories": [
+        "it_services"
+      ],
+      "industry": "IT Services",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Capgemini",
+      "aliases": [],
+      "website_url": "https://www.capgemini.com",
+      "careers_url": "https://jobs.capgemini.com/in-en",
+      "categories": [
+        "it_services"
+      ],
+      "industry": "IT Services",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "LTIMindtree",
+      "aliases": [
+        "LTI Mindtree",
+        "LTIM"
+      ],
+      "website_url": "https://www.ltimindtree.com",
+      "careers_url": "https://www.ltm.com/india-careers",
+      "categories": [
+        "it_services"
+      ],
+      "industry": "IT Services",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Persistent Systems",
+      "aliases": [],
+      "website_url": "https://www.persistent.com",
+      "careers_url": "https://careers.persistent.com/jobslist",
+      "categories": [
+        "it_services"
+      ],
+      "industry": "IT Services",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": []
+    },
+    {
+      "name": "Coinbase",
+      "aliases": [],
+      "website_url": "https://www.coinbase.com",
+      "careers_url": "https://www.coinbase.com/careers",
+      "categories": [
+        "fintech"
+      ],
+      "industry": "Financial Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": [
+        {
+          "provider": "greenhouse",
+          "identifier": "coinbase",
+          "source_url": "https://boards-api.greenhouse.io/v1/boards/coinbase/jobs?content=true",
+          "evidence_url": null
+        }
+      ]
+    },
+    {
+      "name": "FamPay",
+      "aliases": [],
+      "website_url": "https://fampay.in",
+      "careers_url": "https://www.famapp.in/careers/",
+      "categories": [
+        "fintech"
+      ],
+      "industry": "Financial Technology",
+      "priority_tier": 2,
+      "office_locations": [],
+      "sources": [
+        {
+          "provider": "lever",
+          "identifier": "fampay",
+          "source_url": "https://api.lever.co/v0/postings/fampay?mode=json",
+          "evidence_url": null
+        }
+      ]
+    }
+  ]
+}

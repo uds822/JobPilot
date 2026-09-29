@@ -258,3 +258,55 @@ textarea.input { resize: vertical; line-height: 1.5; }
   color: #fca5a5;
   font-size: 0.85rem;
 }
+
+@media (max-width: 1100px) {
+  .app-navbar {
+    padding: 0 16px !important;
+  }
+
+  .app-navbar-inner {
+    height: auto !important;
+    min-height: 64px;
+    padding: 12px 0;
+    gap: 12px !important;
+    flex-wrap: wrap;
+  }
+
+  .app-navbar-brand {
+    margin-right: auto;
+  }
+
+  .app-navbar-divider {
+    display: none;
+  }
+
+  .app-navbar-tabs {
+    order: 3;
+    flex-basis: 100% !important;
+    min-width: 0;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .app-navbar-tabs button {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .app-navbar-account {
+    min-width: 0;
+    max-width: calc(100% - 145px);
+    flex-shrink: 1 !important;
+  }
+
+  .app-navbar-account span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .app-navbar-account button {
+    flex-shrink: 0;
+  }
+}
