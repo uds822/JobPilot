@@ -66,7 +66,9 @@ _EXTENDED_SKILLS: set[str] = {
     "spring", "spring boot", "express.js", "rails", "laravel", "asp.net",
     "angular", "vue.js", "svelte", "gatsby",
     "pandas", "numpy", "matplotlib", "seaborn", "plotly",
-    "huggingface", "transformers", "langchain", "openai",
+    "huggingface", "transformers", "langchain", "langgraph", "openai",
+    "sqlalchemy", "alembic", "semantic kernel", "azure ai foundry",
+    "sentence transformers", "vector search",
     "scikit-learn", "xgboost", "lightgbm", "catboost",
     "pytorch", "tensorflow", "keras",
     # Databases

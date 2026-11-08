@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { sanitizeInput } from '../security/sanitizer';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '');
 
 // ─── Types matching backend schemas exactly ───────────────────────────────────
 
@@ -341,6 +341,16 @@ export interface AIJobMatchCard {
   is_saved: boolean;
   skills_overlap: number;
   experience_fit: number;
+  experience_status: 'matched' | 'mismatched' | 'unknown';
+  experience_reason?: string;
+  required_experience_min?: number | null;
+  required_experience_max?: number | null;
+  experience_source: 'description' | 'unknown';
+  experience_confidence: number;
+  experience_evidence?: string | null;
+  description_completeness: 'full' | 'snippet' | 'unknown';
+  seniority_level?: 'entry' | 'mid' | 'senior' | null;
+  seniority_conflict: boolean;
   role_similarity: number;
   location_fit: number;
   industry_fit: number;
@@ -374,6 +384,8 @@ export interface AIJobMatchCard {
 export interface AISearchRunStatus {
   id: number;
   status: 'queued' | 'running' | 'completed' | 'failed';
+  search_scope: 'general' | 'company';
+  company_id?: number | null;
   started_at: string;
   completed_at?: string;
   error_message?: string;
@@ -389,9 +401,17 @@ export interface AIProfileResponse {
   has_profile: boolean;
   parsed_profile?: {
     skills: string[];
+    skill_groups?: {
+      primary: string[];
+      supporting: string[];
+      tools: string[];
+      domain: string[];
+    };
     years_experience: number;
     recent_titles: string[];
+    target_roles?: string[];
     seniority_level: string;
+    parse_method?: string;
     preferred_locations: string[];
     remote_preference: string;
     preferred_industries: string[];
@@ -419,6 +439,8 @@ export async function getAIProfile(): Promise<AIProfileResponse> {
 
 export async function updateAIPreferences(preferences: {
   years_experience?: number;
+  experience_min_years?: number | null;
+  experience_max_years?: number | null;
   preferred_industries?: string[];
   preferred_company_types?: string[];
   remote_preference?: string;
@@ -427,6 +449,8 @@ export async function updateAIPreferences(preferences: {
   target_company_name?: string;
   salary_expectation_min?: number;
   salary_expectation_max?: number;
+  new_jobs_limit?: number;
+  top_matches_limit?: number;
 }): Promise<any> {
   const res = await apiClient.put('/api/ai-jobs/preferences', preferences);
   return res.data;
@@ -437,16 +461,38 @@ export async function triggerAISearch(): Promise<AISearchRunStatus> {
   return res.data;
 }
 
+export interface AISearchCompany {
+  id: number;
+  name: string;
+  fetchable: boolean;
+  directory_available: boolean;
+  careers_url?: string | null;
+  website_url?: string | null;
+  status: string;
+}
+
+export async function getAISearchCompanies(): Promise<AISearchCompany[]> {
+  const res = await apiClient.get('/api/ai-jobs/companies');
+  return res.data;
+}
+
+export async function triggerAICompanySearch(companyId: number): Promise<AISearchRunStatus> {
+  const res = await apiClient.post('/api/ai-jobs/company-search', { company_id: companyId });
+  return res.data;
+}
+
 export async function getAISearchRunStatus(runId: number): Promise<AISearchRunStatus> {
   const res = await apiClient.get(`/api/ai-jobs/runs/${runId}`);
   return res.data;
 }
 
 export async function getAIFoundJobs(params?: {
-  view?: 'for_you' | 'top_matches' | 'new' | 'all_active' | 'all_unapplied' | 'saved' | 'applied';
+  view?: 'for_you' | 'top_matches' | 'new' | 'all_active' | 'all_unapplied' | 'saved' | 'applied' | 'company';
   industry?: string;
   company_type?: string;
   company_name?: string;
+  company_id?: number;
+  qualified_only?: boolean;
   min_score?: number;
   min_salary?: number;
   remote_only?: boolean;
@@ -455,6 +501,18 @@ export async function getAIFoundJobs(params?: {
   limit?: number;
 }): Promise<AIJobMatchCard[]> {
   const res = await apiClient.get('/api/ai-jobs', { params });
+  return res.data;
+}
+
+export interface DeleteAIFoundJobsResult {
+  deleted_matches: number;
+  deleted_states: number;
+  deleted_jobs: number;
+  retained_shared_jobs: number;
+}
+
+export async function deleteAIFoundJobs(scope: { job_ids: number[] } | { delete_all: true }): Promise<DeleteAIFoundJobsResult> {
+  const res = await apiClient.delete('/api/ai-jobs', { data: scope });
   return res.data;
 }
 

@@ -20,21 +20,26 @@ import {
   UserCheck,
   Globe2,
   Coins,
-  LayoutDashboard
+  LayoutDashboard,
+  Trash2
 } from 'lucide-react';
 import { 
   uploadResume, 
   getAIProfile, 
   updateAIPreferences, 
   triggerAISearch, 
+  triggerAICompanySearch,
+  getAISearchCompanies,
   getAISearchRunStatus, 
   getAIFoundJobs, 
-  updateAIMatchAction
+  updateAIMatchAction,
+  deleteAIFoundJobs
 } from '../api/client';
 import type {
   AIJobMatchCard,
   AISearchRunStatus,
-  AIProfileResponse
+  AIProfileResponse,
+  AISearchCompany,
 } from '../api/client';
 
 interface AIFoundJobsProps {
@@ -43,19 +48,22 @@ interface AIFoundJobsProps {
   onOpenBoard?: () => void;
 }
 
-type JobView = 'new' | 'top_matches' | 'all_unapplied' | 'saved';
+type JobView = 'new' | 'top_matches' | 'all_unapplied' | 'saved' | 'company';
 const PAGE_SIZE = 20;
+const JOB_LIMIT_OPTIONS = [5, 10, 20, 50] as const;
 const JOB_VIEWS: Array<{ id: JobView; label: string }> = [
   { id: 'new', label: 'Newly Fetched' },
   { id: 'top_matches', label: 'Top Matches' },
   { id: 'all_unapplied', label: 'All Unapplied' },
   { id: 'saved', label: 'Saved' },
+  { id: 'company', label: 'Company Jobs' },
 ];
 const EMPTY_VIEW_LABELS: Record<JobView, string> = {
   new: 'No newly fetched jobs',
-  top_matches: 'No previous top matches',
+  top_matches: 'No strong matches yet',
   all_unapplied: 'No unapplied jobs',
   saved: 'No saved jobs',
+  company: 'No company jobs found',
 };
 
 const INDUSTRY_OPTIONS = ['Any', 'Software', 'AI/ML', 'FinTech', 'Healthcare', 'Semiconductor', 'E-commerce', 'Cybersecurity'];
@@ -101,15 +109,23 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
   const [currentRun, setCurrentRun] = useState<AISearchRunStatus | null>(null);
   const [activeSearchLocations, setActiveSearchLocations] = useState<string[]>([]);
   const [activeView, setActiveView] = useState<JobView>('new');
+  const [newJobsLimit, setNewJobsLimit] = useState<number>(20);
+  const [topMatchesLimit, setTopMatchesLimit] = useState<number>(20);
   const [hasMoreJobs, setHasMoreJobs] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [pendingJobIds, setPendingJobIds] = useState<Set<number>>(new Set());
+  const [selectedJobIds, setSelectedJobIds] = useState<Set<number>>(new Set());
+  const [deletePrompt, setDeletePrompt] = useState<'selected' | 'all' | null>(null);
+  const [deletingJobs, setDeletingJobs] = useState(false);
 
   // Currency Mode: 'USD' ($ / yr) | 'INR' (₹ LPA)
   const [currencyMode, setCurrencyMode] = useState<'USD' | 'INR'>('USD');
 
   // Filter & Search States
   const [companyNameQuery, setCompanyNameQuery] = useState<string>('');
+  const [searchCompanies, setSearchCompanies] = useState<AISearchCompany[]>([]);
+  const [searchedCompany, setSearchedCompany] = useState<AISearchCompany | null>(null);
+  const [companyQualifiedOnly, setCompanyQualifiedOnly] = useState(false);
   const [selectedIndustry, setSelectedIndustry] = useState<string>('Any');
   const [selectedCompanyType, setSelectedCompanyType] = useState<string>('Any');
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
@@ -120,7 +136,8 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
   const [showPreferencesModal, setShowPreferencesModal] = useState<boolean>(false);
 
   // Preference edit fields
-  const [userExpInput, setUserExpInput] = useState<string>('');
+  const [experienceMinInput, setExperienceMinInput] = useState<string>('');
+  const [experienceMaxInput, setExperienceMaxInput] = useState<string>('');
   const [targetMinSalary, setTargetMinSalary] = useState<string>('');
   const [targetMaxSalary, setTargetMaxSalary] = useState<string>('');
 
@@ -129,6 +146,8 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
   const requestIdRef = useRef(0);
   const pendingJobIdsRef = useRef(new Set<number>());
   const activeViewRef = useRef<JobView>(activeView);
+  const companyIdRef = useRef<number | null>(null);
+  const companyQualifiedRef = useRef(false);
   const jobStateOverridesRef = useRef(new Map<number, Pick<AIJobMatchCard, 'status' | 'is_saved' | 'application_id'>>());
 
   useEffect(() => {
@@ -143,11 +162,29 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
     setLoading(true);
     try {
       const prof = await getAIProfile();
+      getAISearchCompanies().then(setSearchCompanies).catch(() => {
+        onToast('Company list is unavailable. Try refreshing this page.', 'error');
+      });
       setProfileData(prof);
+      const storedNewLimit = Number(prof.user_preferences?.new_jobs_limit);
+      const storedTopLimit = Number(prof.user_preferences?.top_matches_limit);
+      const nextNewLimit = JOB_LIMIT_OPTIONS.includes(storedNewLimit as typeof JOB_LIMIT_OPTIONS[number]) ? storedNewLimit : 20;
+      const nextTopLimit = JOB_LIMIT_OPTIONS.includes(storedTopLimit as typeof JOB_LIMIT_OPTIONS[number]) ? storedTopLimit : 20;
+      setNewJobsLimit(nextNewLimit);
+      setTopMatchesLimit(nextTopLimit);
       if (prof.parsed_profile) {
-        // Experience: prefer user_preferences override, fallback to parsed resume
-        const expVal = prof.user_preferences?.years_experience ?? prof.parsed_profile.years_experience ?? 3.0;
-        setUserExpInput(String(expVal));
+        // Preserve legacy single-value preferences by treating them as a point range.
+        const hasSavedExperienceRange = prof.user_preferences
+          && ('experience_min_years' in prof.user_preferences || 'experience_max_years' in prof.user_preferences);
+        const legacyExp = prof.user_preferences?.years_experience ?? prof.parsed_profile.years_experience;
+        const expMin = hasSavedExperienceRange
+          ? prof.user_preferences?.experience_min_years
+          : legacyExp;
+        const expMax = hasSavedExperienceRange
+          ? prof.user_preferences?.experience_max_years
+          : legacyExp;
+        setExperienceMinInput(expMin == null ? '' : String(expMin));
+        setExperienceMaxInput(expMax == null ? '' : String(expMax));
 
         // Salary: prefer user_preferences (what user last saved), fallback to parsed_profile
         // All salary values in DB are stored in USD. Convert back to LPA for display.
@@ -185,7 +222,11 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
         remoteOnly,
         minScore,
         minSalaryFilter ? parseFloat(minSalaryFilter) : undefined,
-        sortBy
+        sortBy,
+        activeViewRef.current,
+        0,
+        false,
+        activeViewRef.current === 'new' ? nextNewLimit : activeViewRef.current === 'top_matches' ? nextTopLimit : PAGE_SIZE,
       );
     } catch (err: any) {
       console.error(err);
@@ -204,10 +245,18 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
     sort?: string,
     view: JobView = activeViewRef.current,
     offset = 0,
-    append = false
+    append = false,
+    limitOverride?: number,
   ) => {
     const requestId = ++requestIdRef.current;
-    if (!append) setLoading(true);
+    if (view === 'company' && companyIdRef.current === null) {
+      setJobs([]);
+      return;
+    }
+    if (!append) {
+      setLoading(true);
+      setSelectedJobIds(new Set());
+    }
     try {
       // Calculate effective min salary in USD if entered in INR
       let effectiveMinSalUSD = minSal;
@@ -216,17 +265,20 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
         effectiveMinSalUSD = (minSal * 100000) / USD_TO_INR_RATE;
       }
 
+      const pageSize = limitOverride ?? (view === 'new' ? newJobsLimit : view === 'top_matches' ? topMatchesLimit : PAGE_SIZE);
       const foundJobs = await getAIFoundJobs({
         view,
-        company_name: compName || undefined,
+        company_name: view === 'company' ? undefined : compName || undefined,
+        company_id: view === 'company' ? companyIdRef.current ?? undefined : undefined,
+        qualified_only: view === 'company' ? companyQualifiedRef.current : undefined,
         industry: ind,
         company_type: cType,
-        min_score: view === 'top_matches' ? (score ?? minScore) : 0,
+        min_score: view === 'top_matches' || (view === 'company' && companyQualifiedRef.current) ? 80 : (score ?? minScore),
         min_salary: effectiveMinSalUSD,
         remote_only: remote,
         sort_by: sort || sortBy,
         offset,
-        limit: PAGE_SIZE,
+        limit: pageSize,
       });
       if (requestId !== requestIdRef.current) return;
       // Preserve confirmed actions if this response started before a state change.
@@ -235,7 +287,7 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
         .filter(job => job.status !== 'applied' && job.status !== 'dismissed'
           && (view !== 'saved' || job.is_saved || job.status === 'saved'));
       setJobs(previous => append ? [...previous, ...visibleJobs] : visibleJobs);
-      setHasMoreJobs(foundJobs.length === PAGE_SIZE);
+      setHasMoreJobs(view !== 'top_matches' && foundJobs.length === pageSize);
     } catch (err: any) {
       if (requestId === requestIdRef.current) {
         onToast(err.message || 'Error loading matched jobs', 'error');
@@ -245,9 +297,30 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
     }
   };
 
+  const handleResultLimitChange = async (view: 'new' | 'top_matches', value: number) => {
+    if (view === 'new') setNewJobsLimit(value);
+    else setTopMatchesLimit(value);
+    try {
+      await updateAIPreferences(view === 'new' ? { new_jobs_limit: value } : { top_matches_limit: value });
+      if (activeView === view) {
+        await fetchJobsList(
+          companyNameQuery, selectedIndustry, selectedCompanyType, remoteOnly,
+          minScore, minSalaryFilter ? parseFloat(minSalaryFilter) : undefined,
+          sortBy, view, 0, false, value,
+        );
+      }
+    } catch (err: any) {
+      onToast(err.message || 'Failed to save result count', 'error');
+    }
+  };
+
   const handleViewChange = async (view: JobView) => {
     activeViewRef.current = view;
     setActiveView(view);
+    if (view === 'company' && companyIdRef.current === null) {
+      setJobs([]);
+      return;
+    }
     await fetchJobsList(
       companyNameQuery,
       selectedIndustry,
@@ -346,9 +419,10 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
           if (updatedRun.status === 'completed') {
             if (pollingRef.current) clearInterval(pollingRef.current);
             onToast(`Job discovery completed: ${updatedRun.jobs_fetched} listings fetched`, 'success');
+            setCompanyNameQuery('');
             setActiveView('new');
             activeViewRef.current = 'new';
-            await fetchJobsList(companyNameQuery, selectedIndustry, selectedCompanyType, remoteOnly, minScore,
+            await fetchJobsList(undefined, selectedIndustry, selectedCompanyType, remoteOnly, minScore,
               minSalaryFilter ? parseFloat(minSalaryFilter) : undefined, sortBy, 'new');
           } else if (updatedRun.status === 'failed') {
             if (pollingRef.current) clearInterval(pollingRef.current);
@@ -361,6 +435,61 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
 
     } catch (err: any) {
       onToast(err.message || 'Failed to trigger search', 'error');
+    }
+  };
+
+  const handleCompanySearch = async () => {
+    const company = searchCompanies.find(item => item.name.toLowerCase() === companyNameQuery.trim().toLowerCase());
+    if (!company) {
+      onToast('Choose a registered company from the suggestions.', 'error');
+      return;
+    }
+    if (!company.fetchable && !company.directory_available) {
+      onToast(`${company.name}: ${company.status.replace(/_/g, ' ')}. No job source is available yet.`, 'info');
+      return;
+    }
+    if (!profileData?.has_profile) {
+      onToast('Upload your resume before searching company jobs.', 'error');
+      return;
+    }
+    try {
+      const preferenceResult = await updateAIPreferences({ preferred_locations: selectedLocations });
+      setActiveSearchLocations(preferenceResult.user_preferences?.preferred_locations ?? selectedLocations);
+      const run = await triggerAICompanySearch(company.id);
+      companyIdRef.current = company.id;
+      setSearchedCompany(company);
+      setCurrentRun(run);
+      const showResults = async () => {
+        activeViewRef.current = 'company';
+        setActiveView('company');
+        await fetchJobsList(undefined, selectedIndustry, selectedCompanyType, remoteOnly, minScore,
+          minSalaryFilter ? parseFloat(minSalaryFilter) : undefined, sortBy, 'company');
+      };
+      if (run.status === 'completed') {
+        await showResults();
+        return;
+      }
+      onToast(company.fetchable ? `Checking ${company.name} jobs...` : `Searching third-party listings for ${company.name}...`, 'info');
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      pollingRef.current = setInterval(async () => {
+        try {
+          const updated = await getAISearchRunStatus(run.id);
+          setCurrentRun(updated);
+          if (updated.status === 'completed') {
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            await showResults();
+            onToast(`${company.name}: ${updated.jobs_after_validity} listings found in your selected locations`, 'success');
+          } else if (updated.status === 'failed') {
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            onToast(updated.error_message || 'Company search failed.', 'error');
+          }
+        } catch (err: any) {
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          onToast(err.message || 'Could not check company search status.', 'error');
+        }
+      }, 1500);
+    } catch (err: any) {
+      onToast(err.response?.data?.detail || err.message || 'Could not search this company.', 'error');
     }
   };
 
@@ -377,9 +506,16 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
       });
       if (action === 'dismiss') {
         setJobs(prev => prev.filter(j => j.job_id !== updated.job_id));
+        setSelectedJobIds(prev => {
+          const next = new Set(prev);
+          next.delete(updated.job_id);
+          return next;
+        });
         onToast('Job match dismissed', 'info');
       } else if (action === 'save') {
-        setJobs(prev => prev.map(j => j.job_id === updated.job_id ? { ...j, status: updated.status, is_saved: updated.is_saved } : j));
+        setJobs(prev => activeViewRef.current === 'new' || activeViewRef.current === 'top_matches'
+          ? prev.filter(j => j.job_id !== updated.job_id)
+          : prev.map(j => j.job_id === updated.job_id ? { ...j, status: updated.status, is_saved: updated.is_saved } : j));
         onToast('Job saved to short-list!', 'success');
       } else if (action === 'unsave') {
         setJobs(prev => activeViewRef.current === 'saved'
@@ -388,6 +524,11 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
         onToast('Job removed from Saved', 'info');
       } else if (action === 'apply') {
         setJobs(prev => prev.filter(j => j.job_id !== updated.job_id));
+        setSelectedJobIds(prev => {
+          const next = new Set(prev);
+          next.delete(updated.job_id);
+          return next;
+        });
         await onApplicationCreated?.();
         onToast('Application added to your tracking board', 'success');
       }
@@ -396,6 +537,53 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
     } finally {
       pendingJobIdsRef.current.delete(matchId);
       setPendingJobIds(new Set(pendingJobIdsRef.current));
+    }
+  };
+
+  const toggleJobSelection = (jobId: number) => {
+    setSelectedJobIds(previous => {
+      const next = new Set(previous);
+      if (next.has(jobId)) next.delete(jobId);
+      else next.add(jobId);
+      return next;
+    });
+  };
+
+  const toggleVisibleSelection = () => {
+    const visibleIds = jobs.map(job => job.job_id);
+    const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(id => selectedJobIds.has(id));
+    setSelectedJobIds(previous => {
+      const next = new Set(previous);
+      visibleIds.forEach(id => allVisibleSelected ? next.delete(id) : next.add(id));
+      return next;
+    });
+  };
+
+  const handleDeleteJobs = async () => {
+    if (!deletePrompt || deletingJobs) return;
+    setDeletingJobs(true);
+    try {
+      const result = deletePrompt === 'all'
+        ? await deleteAIFoundJobs({ delete_all: true })
+        : await deleteAIFoundJobs({ job_ids: [...selectedJobIds] });
+      const deletedIds = new Set(selectedJobIds);
+      setJobs(previous => deletePrompt === 'all'
+        ? []
+        : previous.filter(job => !deletedIds.has(job.job_id)));
+      setSelectedJobIds(new Set());
+      setDeletePrompt(null);
+      onToast(
+        `${result.deleted_jobs} job records deleted; ${result.deleted_matches} matches removed${result.retained_shared_jobs ? `, ${result.retained_shared_jobs} shared jobs kept for other users` : ''}.`,
+        'success'
+      );
+      await fetchJobsList(
+        companyNameQuery, selectedIndustry, selectedCompanyType, remoteOnly,
+        minScore, minSalaryFilter ? parseFloat(minSalaryFilter) : undefined, sortBy,
+      );
+    } catch (err: any) {
+      onToast(err.message || 'Failed to delete jobs', 'error');
+    } finally {
+      setDeletingJobs(false);
     }
   };
 
@@ -410,7 +598,8 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
       }
 
       await updateAIPreferences({
-        years_experience: userExpInput ? parseFloat(userExpInput) : undefined,
+        experience_min_years: experienceMinInput ? parseFloat(experienceMinInput) : null,
+        experience_max_years: experienceMaxInput ? parseFloat(experienceMaxInput) : null,
         preferred_locations: selectedLocations,
         salary_expectation_min: minSalUSD,
         salary_expectation_max: maxSalUSD,
@@ -517,6 +706,15 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
               ))}
             </div>
 
+            {profileData.parsed_profile.target_roles && profileData.parsed_profile.target_roles.length > 0 && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                <strong style={{ color: 'var(--text-muted)', fontSize: '0.76rem' }}>Target roles:</strong>
+                {profileData.parsed_profile.target_roles.map(role => (
+                  <span key={role} style={{ padding: '2px 8px', borderRadius: 4, background: 'rgba(52, 211, 153, 0.12)', border: '1px solid rgba(52, 211, 153, 0.28)', color: '#a7f3d0', fontSize: '0.76rem' }}>{role}</span>
+                ))}
+              </div>
+            )}
+
             <button
               onClick={() => setShowPreferencesModal(true)}
               className="btn btn-ghost"
@@ -564,8 +762,10 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
         }}>
           {[
             ['Region', selectedLocations.length > 0 ? selectedLocations.join(' / ') : 'All India'],
-            ['Minimum match', activeView === 'top_matches' ? `${minScore}%` : 'Any score'],
-            ['Experience', userExpInput ? `${userExpInput} ${userExpInput === '1' ? 'year' : 'years'}` : 'Not set'],
+            ['Minimum match', activeView === 'top_matches' ? '80% (strong)' : 'Any score'],
+            ['Your experience', experienceMinInput || experienceMaxInput
+              ? `${experienceMinInput || '0'}-${experienceMaxInput || 'open'} years`
+              : 'Not set'],
             ['Work mode', remoteOnly ? 'Remote only' : 'Any'],
             ['Industry', selectedIndustry],
             ['Company type', selectedCompanyType],
@@ -621,10 +821,11 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
         </div>
       )}
 
-      <div
-        role="tablist"
-        aria-label="Job views"
-        style={{
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div
+          role="tablist"
+          aria-label="Job views"
+          style={{
           display: 'flex',
           gap: 4,
           padding: 4,
@@ -634,9 +835,9 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
           background: 'rgba(0, 0, 0, 0.28)',
           border: '1px solid var(--border-glass)',
           borderRadius: 8,
-        }}
-      >
-        {JOB_VIEWS.map(view => (
+          }}
+        >
+          {JOB_VIEWS.map(view => (
           <button
             key={view.id}
             type="button"
@@ -660,7 +861,62 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
           >
             {view.label}
           </button>
-        ))}
+          ))}
+        </div>
+        {(activeView === 'new' || activeView === 'top_matches') && (
+          <div role="group" aria-label={`Number of ${activeView === 'new' ? 'newly fetched jobs' : 'top matches'} to show`} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>Show</span>
+            <div style={{ display: 'flex', gap: 3, padding: 3, border: '1px solid var(--border-glass)', borderRadius: 8, background: 'rgba(0, 0, 0, 0.22)' }}>
+              {JOB_LIMIT_OPTIONS.map(limit => {
+                const selected = (activeView === 'new' ? newJobsLimit : topMatchesLimit) === limit;
+                return (
+                  <button key={limit} type="button" aria-pressed={selected}
+                    onClick={() => handleResultLimitChange(activeView, limit)}
+                    style={{ minWidth: 36, height: 30, border: selected ? '1px solid rgba(129, 140, 248, 0.55)' : '1px solid transparent', borderRadius: 5, background: selected ? 'rgba(99, 102, 241, 0.22)' : 'transparent', color: selected ? '#fff' : 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}>
+                    {limit}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {activeView === 'company' && searchedCompany && (
+          <div role="group" aria-label="Company job results" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>{searchedCompany.name}</span>
+            {([false, true] as const).map(qualified => (
+              <button key={String(qualified)} type="button" className="btn btn-secondary"
+                aria-pressed={companyQualifiedOnly === qualified}
+                onClick={() => {
+                  companyQualifiedRef.current = qualified;
+                  setCompanyQualifiedOnly(qualified);
+                  fetchJobsList(undefined, selectedIndustry, selectedCompanyType, remoteOnly, minScore,
+                    minSalaryFilter ? parseFloat(minSalaryFilter) : undefined, sortBy, 'company');
+                }}
+                style={{ padding: '6px 10px', background: companyQualifiedOnly === qualified ? 'rgba(99, 102, 241, 0.22)' : undefined }}>
+                {qualified ? 'Strong fits' : 'All found'}
+              </button>
+            ))}
+          </div>
+        )}
+        {activeView === 'company' && searchedCompany && !searchedCompany.fetchable && (
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', width: '100%' }}>
+            Third-party listings may be incomplete; {searchedCompany.name} has no verified job feed.
+            {(searchedCompany.careers_url || searchedCompany.website_url) && (
+              <> <a href={searchedCompany.careers_url || searchedCompany.website_url || '#'} target="_blank" rel="noopener noreferrer">{searchedCompany.careers_url ? 'Official careers page' : 'Company website'} <ExternalLink size={12} style={{ verticalAlign: 'middle' }} /></a></>
+            )}
+          </div>
+        )}
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => setDeletePrompt('all')}
+          disabled={deletingJobs}
+          title="Delete all AI job matches and states for this account"
+          style={{ color: '#fca5a5', borderColor: 'rgba(248, 113, 113, 0.35)' }}
+        >
+          <Trash2 size={15} />
+          Delete all jobs
+        </button>
       </div>
 
       {/* Filter & Search Bar */}
@@ -673,6 +929,8 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
               type="text"
               className="input"
               value={companyNameQuery}
+              list="ai-job-company-options"
+              onKeyDown={(e) => { if (e.key === 'Enter') handleCompanySearch(); }}
               onChange={(e) => {
                 setCompanyNameQuery(e.target.value);
                 fetchJobsList(
@@ -688,7 +946,15 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
               placeholder="Search company (Stripe, GitHub, Netflix)..."
               style={{ paddingLeft: 36 }}
             />
+            <datalist id="ai-job-company-options">
+              {searchCompanies.map(company => <option key={company.id} value={company.name} />)}
+            </datalist>
           </div>
+          <button type="button" className="btn btn-secondary" onClick={handleCompanySearch}
+            disabled={currentRun?.status === 'running' || currentRun?.status === 'queued'}
+            title="Fetch and match jobs from this registered company">
+            <Search size={15} /> Find company jobs
+          </button>
 
           {/* Industry Filter */}
           <select
@@ -842,6 +1108,32 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
       </div>
 
       {/* Main Jobs Cards Grid */}
+      {!loading && jobs.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: '10px 14px', border: '1px solid var(--border-glass)', borderRadius: 8, background: 'rgba(0, 0, 0, 0.2)' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-body)', fontSize: '0.85rem', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={jobs.every(job => selectedJobIds.has(job.job_id))}
+              onChange={toggleVisibleSelection}
+              aria-label="Select all shown jobs"
+            />
+            Select all shown ({jobs.length})
+          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{selectedJobIds.size} selected</span>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setDeletePrompt('selected')}
+              disabled={selectedJobIds.size === 0 || deletingJobs}
+              style={{ color: '#fca5a5', borderColor: 'rgba(248, 113, 113, 0.35)' }}
+            >
+              <Trash2 size={15} />
+              Delete selected
+            </button>
+          </div>
+        </div>
+      )}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '80px 0' }}>
           <RefreshCw size={32} className="spin" color="#818cf8" style={{ marginBottom: 12 }} />
@@ -861,7 +1153,9 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
           </h3>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: 450, margin: '0 auto 20px auto' }}>
             {profileData?.has_profile 
-              ? "Try adjusting your company search, location filters, or click 'Find Jobs / Refresh' to scan live listings." 
+              ? activeView === 'company'
+                ? searchedCompany ? `No ${companyQualifiedOnly ? 'strong-fit ' : ''}jobs from ${searchedCompany.name} in your selected locations. Try All found or another location.` : 'Choose a registered company and search its jobs.'
+                : "Try adjusting your company search, location filters, or click 'Find Jobs / Refresh' to scan live listings."
               : "Please upload your resume to start matching with jobs."}
           </p>
           {!profileData?.has_profile && (
@@ -883,6 +1177,15 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
                 style={{ padding: 24, borderRadius: 8, minWidth: 0, overflowWrap: 'anywhere', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 16 }}
               >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, width: 'fit-content', color: 'var(--text-muted)', fontSize: '0.78rem', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedJobIds.has(job.job_id)}
+                      onChange={() => toggleJobSelection(job.job_id)}
+                      aria-label={`Select ${job.title} at ${job.company}`}
+                    />
+                    Select job
+                  </label>
                   {/* Card Header */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
                     <div style={{ minWidth: 0, flex: '1 1 200px' }}>
@@ -918,6 +1221,21 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
 
                   {/* Details Line with Dual Currency Formatting (USD / INR LPA) */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', paddingTop: 10, borderTop: '1px solid var(--border-glass)', fontSize: '0.8rem' }}>
+                    <span
+                      title={job.experience_evidence || job.experience_reason || 'Experience requirement not available'}
+                      style={{
+                        padding: '3px 8px', borderRadius: 6,
+                        background: job.experience_status === 'matched' ? 'rgba(52,211,153,0.12)' : job.experience_status === 'mismatched' ? 'rgba(248,113,113,0.12)' : 'rgba(251,191,36,0.12)',
+                        color: job.experience_status === 'matched' ? '#a7f3d0' : job.experience_status === 'mismatched' ? '#fca5a5' : '#fde68a',
+                        border: '1px solid currentColor',
+                      }}
+                    >
+                      {job.experience_status === 'matched'
+                        ? `Experience fit${job.required_experience_min == null ? '' : `: ${job.required_experience_min}${job.required_experience_max == null ? '+' : `-${job.required_experience_max}`} yrs`}`
+                        : job.experience_status === 'mismatched'
+                          ? job.experience_reason || 'Experience mismatch'
+                          : job.seniority_conflict ? 'Experience unknown (senior title)' : 'Experience unknown'}
+                    </span>
                     {(job.salary_min || job.salary_max) ? (
                       <span style={{
                         display: 'flex', alignItems: 'center', gap: 4, fontWeight: 700,
@@ -1050,6 +1368,30 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
         </div>
       )}
 
+      {deletePrompt && (
+        <div className="overlay" role="presentation">
+          <div className="modal" role="alertdialog" aria-modal="true" aria-labelledby="delete-jobs-title" style={{ maxWidth: 480 }}>
+            <h2 id="delete-jobs-title" style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 8, color: '#fff' }}>
+              {deletePrompt === 'all' ? 'Delete all AI-found jobs?' : `Delete ${selectedJobIds.size} selected jobs?`}
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', lineHeight: 1.55, marginBottom: 20 }}>
+              {deletePrompt === 'all'
+                ? 'This removes all AI job matches and saved states for your account from the database. Canonical job records are permanently deleted only when no other account references them. Applications already on your tracking board are kept.'
+                : 'This removes the selected AI job matches and saved states for your account. A canonical job record is permanently deleted only when no other account references it.'}
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setDeletePrompt(null)} disabled={deletingJobs}>
+                Cancel
+              </button>
+              <button type="button" className="btn btn-primary" onClick={handleDeleteJobs} disabled={deletingJobs} style={{ background: '#b91c1c', borderColor: '#b91c1c' }}>
+                {deletingJobs ? <RefreshCw size={15} className="spin" /> : <Trash2 size={15} />}
+                {deletingJobs ? 'Deleting...' : 'Delete permanently'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Edit Preferences & Experience Modal */}
       {showPreferencesModal && (
         <div className="overlay">
@@ -1066,19 +1408,35 @@ export const AIFoundJobs: React.FC<AIFoundJobsProps> = ({ onToast, onApplication
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
-              {/* Total Years of Experience */}
               <div>
-                <label className="label">Total Years of Work Experience</label>
-                <input
-                  type="number"
-                  step="0.5"
-                  min="0"
-                  max="40"
-                  className="input"
-                  value={userExpInput}
-                  onChange={(e) => setUserExpInput(e.target.value)}
-                  placeholder="e.g. 4.5"
-                />
+                <label className="label">Your work experience range (years)</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    max="40"
+                    className="input"
+                    aria-label="Minimum years of your experience"
+                    value={experienceMinInput}
+                    onChange={(e) => setExperienceMinInput(e.target.value)}
+                    placeholder="Minimum"
+                  />
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    max="40"
+                    className="input"
+                    aria-label="Maximum years of your experience"
+                    value={experienceMaxInput}
+                    onChange={(e) => setExperienceMaxInput(e.target.value)}
+                    placeholder="Maximum"
+                  />
+                </div>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: 6 }}>
+                  Jobs with clear experience requirements outside this range are filtered out. Unspecified requirements remain visible.
+                </p>
               </div>
 
               {/* Multi-Location Selection */}

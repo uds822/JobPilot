@@ -214,7 +214,14 @@
       "industry": "Technology",
       "priority_tier": 2,
       "office_locations": [],
-      "sources": []
+      "sources": [
+        {
+          "provider": "eightfold",
+          "identifier": "paypal.eightfold.ai",
+          "source_url": "https://paypal.eightfold.ai/careers?domain=paypal.com",
+          "evidence_url": "https://careers.pypl.com/"
+        }
+      ]
     },
     {
       "name": "Intuit",
@@ -1760,7 +1767,14 @@
       "industry": "Semiconductors",
       "priority_tier": 2,
       "office_locations": [],
-      "sources": []
+      "sources": [
+        {
+          "provider": "eightfold",
+          "identifier": "careers.qualcomm.com",
+          "source_url": "https://careers.qualcomm.com/careers?domain=qualcomm.com",
+          "evidence_url": "https://www.qualcomm.com/company/careers"
+        }
+      ]
     },
     {
       "name": "Broadcom",
@@ -2203,6 +2217,426 @@
           "evidence_url": null
         }
       ]
+    },
+    {
+      "name": "MoEngage",
+      "website_url": "https://www.moengage.com",
+      "categories": ["indian_product", "startup", "saas"],
+      "industry": "Software",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "CleverTap",
+      "website_url": "https://clevertap.com",
+      "categories": ["indian_product", "startup", "saas"],
+      "industry": "Software",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Gupshup",
+      "website_url": "https://www.gupshup.io",
+      "categories": ["indian_product", "startup", "saas"],
+      "industry": "Software",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "WebEngage",
+      "website_url": "https://webengage.com",
+      "categories": ["indian_product", "startup", "saas"],
+      "industry": "Software",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "LeadSquared",
+      "website_url": "https://www.leadsquared.com",
+      "categories": ["indian_product", "startup", "saas"],
+      "industry": "Software",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Keka",
+      "website_url": "https://www.keka.com",
+      "categories": ["indian_product", "startup", "saas"],
+      "industry": "Software",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Zenoti",
+      "website_url": "https://www.zenoti.com",
+      "categories": ["indian_product", "startup", "saas"],
+      "industry": "Software",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "LambdaTest",
+      "website_url": "https://www.lambdatest.com",
+      "categories": ["indian_product", "startup", "saas", "developer_tools"],
+      "industry": "Software",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Wingify",
+      "aliases": ["VWO"],
+      "website_url": "https://wingify.com",
+      "categories": ["indian_product", "startup", "saas"],
+      "industry": "Software",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Druva",
+      "website_url": "https://www.druva.com",
+      "categories": ["indian_product", "startup", "saas", "cloud_infrastructure"],
+      "industry": "Software",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Amagi",
+      "website_url": "https://www.amagi.com",
+      "categories": ["indian_product", "startup", "media_technology"],
+      "industry": "Software",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Lenskart",
+      "website_url": "https://www.lenskart.com",
+      "categories": ["indian_product", "startup", "ecommerce"],
+      "industry": "Retail Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "ShareChat",
+      "website_url": "https://sharechat.com",
+      "categories": ["indian_product", "startup", "consumer_internet"],
+      "industry": "Consumer Internet",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "VerSe Innovation",
+      "aliases": ["Dailyhunt"],
+      "website_url": "https://www.verse.in",
+      "categories": ["indian_product", "startup", "consumer_internet"],
+      "industry": "Consumer Internet",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Inshorts",
+      "website_url": "https://inshorts.com",
+      "categories": ["indian_product", "startup", "consumer_internet"],
+      "industry": "Consumer Internet",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "BookMyShow",
+      "website_url": "https://in.bookmyshow.com",
+      "categories": ["indian_product", "startup", "consumer_internet"],
+      "industry": "Consumer Internet",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "ixigo",
+      "website_url": "https://www.ixigo.com",
+      "categories": ["indian_product", "startup", "travel"],
+      "industry": "Travel Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "redBus",
+      "website_url": "https://www.redbus.in",
+      "categories": ["indian_product", "startup", "travel"],
+      "industry": "Travel Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "NoBroker",
+      "website_url": "https://www.nobroker.in",
+      "categories": ["indian_product", "startup", "real_estate_technology"],
+      "industry": "Real Estate Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Navi",
+      "website_url": "https://navi.com",
+      "categories": ["indian_product", "startup", "fintech"],
+      "industry": "Financial Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "BharatPe",
+      "website_url": "https://www.bharatpe.com",
+      "categories": ["indian_product", "startup", "fintech"],
+      "industry": "Financial Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "MobiKwik",
+      "website_url": "https://www.mobikwik.com",
+      "categories": ["indian_product", "startup", "fintech"],
+      "industry": "Financial Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "KreditBee",
+      "website_url": "https://www.kreditbee.in",
+      "categories": ["indian_product", "startup", "fintech"],
+      "industry": "Financial Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "FPL Technologies",
+      "aliases": ["OneCard"],
+      "website_url": "https://www.getonecard.app",
+      "categories": ["indian_product", "startup", "fintech"],
+      "industry": "Financial Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "INDmoney",
+      "website_url": "https://www.indmoney.com",
+      "categories": ["indian_product", "startup", "fintech"],
+      "industry": "Financial Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Udaan",
+      "website_url": "https://udaan.com",
+      "categories": ["indian_product", "startup", "b2b_commerce"],
+      "industry": "Commerce Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Ather Energy",
+      "website_url": "https://www.atherenergy.com",
+      "careers_url": "https://careers.atherenergy.com/jobs",
+      "categories": ["indian_product", "startup", "mobility", "hardware"],
+      "industry": "Electric Mobility",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Unacademy",
+      "website_url": "https://unacademy.com",
+      "categories": ["indian_product", "startup", "edtech"],
+      "industry": "Education Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Apna",
+      "website_url": "https://apna.co",
+      "categories": ["indian_product", "startup", "employment_technology"],
+      "industry": "Employment Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Games24x7",
+      "website_url": "https://www.games24x7.com",
+      "categories": ["indian_product", "startup", "gaming"],
+      "industry": "Gaming Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Porter",
+      "website_url": "https://porter.in",
+      "categories": ["indian_product", "startup", "logistics"],
+      "industry": "Logistics Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Rapido",
+      "website_url": "https://rapido.bike",
+      "categories": ["indian_product", "startup", "mobility"],
+      "industry": "Mobility Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "PhysicsWallah",
+      "website_url": "https://www.pw.live",
+      "categories": ["indian_product", "startup", "edtech"],
+      "industry": "Education Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "FirstCry",
+      "website_url": "https://www.firstcry.com",
+      "categories": ["indian_product", "startup", "ecommerce"],
+      "industry": "Retail Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Acko",
+      "website_url": "https://www.acko.com",
+      "categories": ["indian_product", "startup", "insurtech"],
+      "industry": "Insurance Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "CARS24",
+      "website_url": "https://www.cars24.com",
+      "categories": ["indian_product", "startup", "automotive", "marketplace"],
+      "industry": "Automotive Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Spinny",
+      "website_url": "https://www.spinny.com",
+      "categories": ["indian_product", "startup", "automotive", "marketplace"],
+      "industry": "Automotive Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Delhivery",
+      "website_url": "https://www.delhivery.com",
+      "categories": ["indian_product", "startup", "logistics"],
+      "industry": "Logistics Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "3M",
+      "website_url": "https://www.3m.com",
+      "categories": ["gcc", "enterprise", "hardware"],
+      "industry": "Diversified Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Amdocs",
+      "website_url": "https://www.amdocs.com",
+      "categories": ["gcc", "enterprise", "telecom"],
+      "industry": "Software and Telecommunications",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "BMW Group",
+      "website_url": "https://www.bmwgroup.com",
+      "categories": ["gcc", "automotive", "enterprise"],
+      "industry": "Automotive Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Coca-Cola",
+      "website_url": "https://www.coca-colacompany.com",
+      "categories": ["gcc", "consumer_goods", "enterprise"],
+      "industry": "Consumer Goods Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Colgate-Palmolive",
+      "website_url": "https://www.colgatepalmolive.com",
+      "categories": ["gcc", "consumer_goods", "enterprise"],
+      "industry": "Consumer Goods Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Airbus",
+      "website_url": "https://www.airbus.com",
+      "categories": ["gcc", "aerospace", "enterprise"],
+      "industry": "Aerospace Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Fiserv",
+      "website_url": "https://www.fiserv.com",
+      "categories": ["gcc", "fintech", "enterprise"],
+      "industry": "Financial Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Franklin Templeton",
+      "website_url": "https://www.franklintempleton.com",
+      "categories": ["gcc", "financial_services", "enterprise"],
+      "industry": "Financial Services Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Mercedes-Benz",
+      "website_url": "https://group.mercedes-benz.com",
+      "categories": ["gcc", "automotive", "enterprise"],
+      "industry": "Automotive Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "NXP Semiconductors",
+      "website_url": "https://www.nxp.com",
+      "categories": ["gcc", "semiconductor", "enterprise"],
+      "industry": "Semiconductors",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Shell",
+      "website_url": "https://www.shell.com",
+      "categories": ["gcc", "energy", "enterprise"],
+      "industry": "Energy Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Siemens",
+      "website_url": "https://www.siemens.com",
+      "categories": ["gcc", "industrial_technology", "enterprise"],
+      "industry": "Industrial Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Western Union",
+      "website_url": "https://www.westernunion.com",
+      "categories": ["gcc", "fintech", "enterprise"],
+      "industry": "Financial Technology",
+      "priority_tier": 1,
+      "sources": []
+    },
+    {
+      "name": "Wolters Kluwer",
+      "website_url": "https://www.wolterskluwer.com",
+      "categories": ["gcc", "enterprise_software", "enterprise"],
+      "industry": "Enterprise Software",
+      "priority_tier": 1,
+      "sources": []
     }
   ]
 }

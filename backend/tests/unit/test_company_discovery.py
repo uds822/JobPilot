@@ -34,7 +34,9 @@ from tests.unit.test_company_watch_service import _run
     ("https://example.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1", "oracle", None),
     ("https://example.successfactors.com/career", "successfactors", None),
     ("https://nvidia.eightfold.ai/careers", "eightfold", "nvidia.eightfold.ai"),
+    ("https://careers.qualcomm.com/careers/job/123", "eightfold", "careers.qualcomm.com"),
     ("https://www.google.com/about/careers/applications/", "google", "google"),
+    ("https://amazon.jobs/en/", "amazon", "amazon"),
 ])
 def test_evidence_based_detection(url, provider, identifier):
     result = detect_url(url)
@@ -118,6 +120,7 @@ def test_request_budget_stops_unbounded_redirects():
 
 def test_no_provider_guessing_and_url_canonicalization():
     assert detect_url("https://google-fake.example.com/careers") is None
+    assert detect_url("https://performancemanager4.successfactors.com/verp/vmod_v1/ui/extlib/jquery.js") is None
     assert canonical_url("https://EXAMPLE.com/jobs?b=2&utm_source=test&a=1#fragment") == "https://example.com/jobs?a=1&b=2"
     sources, _, _ = inspect_page('<iframe src="https://jobs.lever.co/Example"></iframe>', "https://example.com/careers")
     assert sources[0].identity == "lever:example"
@@ -200,6 +203,121 @@ def test_google_layout_failure_is_not_an_empty_inventory():
         async with httpx.AsyncClient(transport=httpx.MockTransport(lambda request: httpx.Response(200, text="Sign in"))) as client:
             result = await service._ingest_one(client, asyncio.Semaphore(1), claimed("google", "https://www.google.com/about/careers/applications/", "google", "Google"))
         assert not result.snapshot_complete and result.source_result.status == "temporary_failure"
+    asyncio.run(scenario())
+
+
+def amazon_item(identity):
+    return {
+        "id": identity,
+        "title": "Software Development Engineer",
+        "country_code": "IND",
+        "location": "Bengaluru, KA, India",
+        "job_path": f"/en/jobs/{identity}/software-development-engineer",
+        "description": "Build software services with Python.",
+        "basic_qualifications": "Bachelor's degree in computer science.",
+        "preferred_qualifications": "Experience with distributed systems.",
+        "posted_date": "September 28, 2026",
+    }
+
+
+def test_amazon_india_inventory_and_partial_page_failure():
+    async def scenario():
+        source = claimed("amazon", "https://www.amazon.jobs/en/search.json?country=IND", "amazon", "Amazon")
+        def complete_handler(request):
+            return httpx.Response(200, json={"hits": 2, "jobs": [amazon_item("one"), amazon_item("two")]})
+        async with httpx.AsyncClient(transport=httpx.MockTransport(complete_handler)) as client:
+            complete = await service._ingest_one(client, asyncio.Semaphore(1), source)
+        assert complete.snapshot_complete and len(complete.jobs) == 2
+        assert complete.jobs[0].location == "Bengaluru, KA, India"
+        assert complete.jobs[0].apply_url.startswith("https://www.amazon.jobs/en/jobs/")
+        assert complete.jobs[0].posted_date is not None
+
+        def partial_handler(request):
+            if request.url.params["offset"] != "0":
+                return httpx.Response(503)
+            return httpx.Response(200, json={"hits": 101, "jobs": [amazon_item(str(index)) for index in range(100)]})
+        async with httpx.AsyncClient(transport=httpx.MockTransport(partial_handler)) as client:
+            partial = await service._ingest_one(client, asyncio.Semaphore(1), source)
+        assert not partial.snapshot_complete and len(partial.jobs) == 100
+        assert partial.source_result.status == "partial"
+    asyncio.run(scenario())
+
+
+def test_oracle_india_inventory_and_partial_page_failure():
+    async def scenario():
+        source = claimed("oracle", "https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001", "jpmc.fa.oraclecloud.com:CX_1001", "JPMorgan Chase")
+        def item(identity):
+            return {"Id": identity, "Title": "Software Engineer", "PrimaryLocationCountry": "IN", "PrimaryLocation": "Bengaluru, Karnataka, India", "PostedDate": "2026-09-28", "ShortDescriptionStr": "Build software systems."}
+        def complete_handler(request):
+            assert "location%3DIndia" in str(request.url)
+            return httpx.Response(200, json={"items": [{"SiteNumber": "CX_1001", "TotalJobsCount": 2, "requisitionList": [item("one"), item("two")]}]})
+        async with httpx.AsyncClient(transport=httpx.MockTransport(complete_handler)) as client:
+            complete = await service._ingest_one(client, asyncio.Semaphore(1), source)
+        assert complete.snapshot_complete and len(complete.jobs) == 2
+        assert complete.jobs[0].apply_url.endswith("/sites/CX_1001/job/one")
+
+        def partial_handler(request):
+            if "offset%3D1" in str(request.url):
+                return httpx.Response(503)
+            return httpx.Response(200, json={"items": [{"SiteNumber": "CX_1001", "TotalJobsCount": 2, "requisitionList": [item("one")]}]})
+        async with httpx.AsyncClient(transport=httpx.MockTransport(partial_handler)) as client:
+            partial = await service._ingest_one(client, asyncio.Semaphore(1), source)
+        assert not partial.snapshot_complete and len(partial.jobs) == 1
+        assert partial.source_result.status == "partial"
+    asyncio.run(scenario())
+
+
+def test_eightfold_india_pagination_and_partial_budget_preservation():
+    async def scenario():
+        source = claimed("eightfold", "https://nvidia.eightfold.ai/careers", "nvidia.eightfold.ai", "NVIDIA")
+        def item(identity):
+            return {"id": identity, "name": "Software Engineer", "locations": ["Bengaluru, India"], "positionUrl": f"/careers/job/{identity}", "postedTs": 1790553600}
+        def complete_handler(request):
+            assert request.url.params["domain"] == "nvidia.com"
+            assert request.url.params["location"] == "India"
+            return httpx.Response(200, json={"data": {"count": 2, "positions": [item("one"), item("two")]}})
+        async with httpx.AsyncClient(transport=httpx.MockTransport(complete_handler)) as client:
+            complete = await service._ingest_one(client, asyncio.Semaphore(1), source)
+        assert complete.snapshot_complete and len(complete.jobs) == 2
+        assert complete.jobs[0].apply_url.endswith("/careers/job/one")
+        assert complete.jobs[0].posted_date is not None
+
+        def country_code_handler(request):
+            return httpx.Response(200, json={"data": {"count": 1, "positions": [{
+                "id": "country-code", "name": "Software Engineer",
+                "standardizedLocations": ["IN", "Pune, MH, IN"],
+                "positionUrl": "/careers/job/country-code",
+            }]}})
+        async with httpx.AsyncClient(transport=httpx.MockTransport(country_code_handler)) as client:
+            country_code = await service._ingest_one(client, asyncio.Semaphore(1), source)
+        assert country_code.snapshot_complete and country_code.jobs[0].location == "India; Pune, MH, IN"
+
+        def scoped_location_handler(request):
+            return httpx.Response(200, json={"data": {"count": 1, "positions": [{
+                "id": "scoped-location", "name": "Software Engineer",
+                "locations": [], "positionUrl": "/careers/job/scoped-location",
+            }]}})
+        async with httpx.AsyncClient(transport=httpx.MockTransport(scoped_location_handler)) as client:
+            scoped_location = await service._ingest_one(client, asyncio.Semaphore(1), source)
+        assert scoped_location.snapshot_complete and scoped_location.jobs[0].location == "India"
+
+        def conflicting_location_handler(request):
+            return httpx.Response(200, json={"data": {"count": 1, "positions": [{
+                "id": "conflicting-location", "name": "Software Engineer",
+                "locations": ["Austin, TX, US"], "positionUrl": "/careers/job/conflicting-location",
+            }]}})
+        async with httpx.AsyncClient(transport=httpx.MockTransport(conflicting_location_handler)) as client:
+            conflicting_location = await service._ingest_one(client, asyncio.Semaphore(1), source)
+        assert not conflicting_location.snapshot_complete and not conflicting_location.jobs
+
+        def partial_handler(request):
+            if request.url.params["start"] != "0":
+                return httpx.Response(503)
+            return httpx.Response(200, json={"data": {"count": 11, "positions": [item(str(index)) for index in range(10)]}})
+        async with httpx.AsyncClient(transport=httpx.MockTransport(partial_handler)) as client:
+            partial = await service._ingest_one(client, asyncio.Semaphore(1), source)
+        assert not partial.snapshot_complete and len(partial.jobs) == 10
+        assert partial.source_result.status == "partial"
     asyncio.run(scenario())
 
 
@@ -301,6 +419,26 @@ def test_broken_source_rediscovery_and_missing_url_state():
             assert len(claims) == 1 and claims[0].id == broken.id
         finally:
             await cleanup(companies)
+    _run(scenario())
+
+
+def test_company_with_website_is_discovery_pending_not_missing_careers_url():
+    async def scenario():
+        suffix = uuid4().hex
+        company_ids = []
+        try:
+            async with AsyncSessionLocal() as db:
+                await register_companies(db, RegistryDocument(companies=[
+                    {"name": f"Website Only {suffix}", "website_url": "https://example.com"},
+                ]))
+                company = await db.scalar(select(Company).where(Company.name == f"Website Only {suffix}"))
+                company_ids.append(company.id)
+            status = next(row for row in await service.source_health_status() if row["company_id"] == company_ids[0])
+            assert status["website_url"] == "https://example.com"
+            assert status["status"] == "discovery_pending"
+            assert status["discovery_status"] == "discovery_pending"
+        finally:
+            await cleanup(company_ids)
     _run(scenario())
 
 

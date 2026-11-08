@@ -11,7 +11,12 @@ from app.database.database import AsyncSessionLocal
 from app.ai_job_search.models import AIJob, CompanyProfileCache, UserResumeProfile, SearchRun, AIJobMatch, UserJobState
 from app.ai_job_search.persistence import canonical_job_values, upsert_canonical_jobs
 from app.ai_job_search.schemas import ResumeProfileSchema, NormalizedJobSchema
-from app.ai_job_search.matching import compute_match_score_llm, compute_match_score_deterministic
+from app.ai_job_search.matching import (
+    candidate_experience_range,
+    compute_match_score_llm,
+    compute_match_score_deterministic,
+)
+from app.ai_job_search.experience import assess_experience, facts_from_job
 from app.ai_job_search.resume_archetype import classify_resume
 from app.ai_job_search.query_generator import generate_queries
 from app.ai_job_search.job_skill_extractor import (
@@ -23,7 +28,9 @@ import app.ai_job_search.providers.adzuna as adzuna_provider
 import app.ai_job_search.providers.greenhouse as greenhouse_provider
 import app.ai_job_search.providers.lever as lever_provider
 from app.ai_job_search.providers.ats_filters import ats_location_matches
-from app.company_watch.models import CompanyIntelligence, CompanySource
+from app.company_watch.models import CompanyAlias, CompanyIntelligence, CompanySource
+from app.company_watch.registry import normalized_alias
+from app.models.companies import Company
 
 logger = logging.getLogger(__name__)
 
@@ -102,11 +109,11 @@ async def _fetch_jobs_from_providers(
 async def _fetch_stored_company_watch_jobs(
     db: AsyncSession,
     freshness_days: int = 14,
+    company_id: int | None = None,
 ) -> tuple[list[NormalizedJobSchema], dict[tuple[str, str], int]]:
     """Read recently verified Company Watch postings without calling ATS sources."""
     cutoff = datetime.utcnow() - timedelta(days=freshness_days)
-    rows = await db.execute(
-        select(AIJob).join(CompanySource, CompanySource.id == AIJob.ingestion_source_id).where(
+    stmt = select(AIJob).join(CompanySource, CompanySource.id == AIJob.ingestion_source_id).where(
             AIJob.ingestion_source_id.is_not(None),
             AIJob.is_active.is_(True),
             AIJob.last_seen_at >= cutoff,
@@ -116,7 +123,9 @@ async def _fetch_stored_company_watch_jobs(
                 CompanyIntelligence.is_active.is_(False),
             ).exists(),
         )
-    )
+    if company_id is not None:
+        stmt = stmt.where(CompanySource.company_id == company_id)
+    rows = await db.execute(stmt)
     jobs = []
     ids_by_key: dict[tuple[str, str], int] = {}
     for job in rows.scalars().all():
@@ -131,6 +140,7 @@ async def _fetch_stored_company_watch_jobs(
                 location=job.location,
                 remote=job.remote,
                 description=job.description,
+                description_completeness=job.description_completeness,
                 salary_min=job.salary_min,
                 salary_max=job.salary_max,
                 salary_currency=job.salary_currency,
@@ -154,6 +164,36 @@ def _matches_target_locations(
     if job.source in DIRECT_ATS_SOURCES:
         return ats_location_matches(job.location, job.description, target_locations)
     return adzuna_provider.matches_selected_locations(job.location, target_locations)
+
+
+def _employer_key(name: str) -> str:
+    tokens = normalized_alias(name).split()
+    while tokens and tokens[-1] in {"pvt", "private", "ltd", "limited", "inc", "llc", "corp", "corporation", "plc"}:
+        tokens.pop()
+    return " ".join(tokens)
+
+
+async def _fetch_company_directory_jobs(
+    company: Company,
+    aliases: list[str],
+    target_locations: list[str],
+) -> list[NormalizedJobSchema]:
+    """Adzuna is partial coverage; accept only exact employer identities."""
+    accepted = {_employer_key(name) for name in [company.name, *aliases]}
+    accepted.discard("")
+    candidates = await adzuna_provider.fetch(
+        queries=[company.name],
+        locations=target_locations[:3],
+        pages=2,
+        max_days_old=30,
+        concurrency=2,
+    )
+    jobs = [job for job in candidates if _employer_key(job.company) in accepted]
+    logger.info(
+        "Company directory fallback: company=%s candidates=%d exact_employer=%d",
+        company.name, len(candidates), len(jobs),
+    )
+    return jobs
 
 
 def _candidate_sort_key(
@@ -194,15 +234,19 @@ async def run_ai_job_search_task(user_id: int, search_run_id: int):
             parsed_data = resume_profile_model.parsed_profile or {}
             profile_schema = ResumeProfileSchema(**parsed_data)
             user_prefs = resume_profile_model.user_preferences or {}
+            strict_experience = any(
+                user_prefs.get(key) is not None
+                for key in ("experience_min_years", "experience_max_years")
+            )
 
             # 2. Archetype classification → understand what kind of engineer this person is
-            cand_exp = float(user_prefs.get("years_experience") or profile_schema.years_experience or 1.0)
+            cand_exp_min, cand_exp_max = candidate_experience_range(user_prefs, profile_schema)
             archetype_result = classify_resume(profile_schema)
             top_archetypes = archetype_result["top_archetypes"]
             logger.info(f"Resume archetypes: {top_archetypes}")
 
             # 3. Query generation → 2-3 role-specific queries per top archetype
-            queries = generate_queries(top_archetypes)
+            queries = generate_queries(top_archetypes, profile_schema.target_roles)
 
             # 4. Determine target locations
             if "preferred_locations" in user_prefs:
@@ -215,13 +259,47 @@ async def run_ai_job_search_task(user_id: int, search_run_id: int):
 
             # ATS refreshes persist complete snapshots through shared worker claims.
             # The existing provider APIs remain available; this path reads ATS inventory.
-            live_jobs, _ = await asyncio.gather(
-                _fetch_jobs_from_providers(
-                    queries, target_locs, greenhouse_boards=[], lever_sites=[],
-                ),
-                _refresh_company_watch_inventory(),
-            )
-            stored_company_jobs, stored_ids = await _fetch_stored_company_watch_jobs(db)
+            if run.search_scope == "company":
+                from app.company_watch.service import ingest_due_sources
+
+                company = await db.get(Company, run.company_id)
+                if company is None:
+                    raise ValueError("Selected company is no longer registered.")
+                aliases = (await db.execute(select(CompanyAlias.alias).where(
+                    CompanyAlias.company_id == company.id
+                ))).scalars().all()
+                sources = (await db.execute(
+                    select(CompanySource).where(
+                        CompanySource.company_id == run.company_id,
+                        CompanySource.is_active.is_(True),
+                        CompanySource.provider.in_(SUPPORTED_PROVIDERS),
+                        CompanySource.ownership_status.in_(("registry_trusted", "ownership_verified")),
+                        CompanySource.status.not_in(("unverified", "stale", "unsupported", "adapter_required", "ownership_conflict")),
+                        (CompanySource.last_verified_at.is_not(None) | CompanySource.last_success_at.is_not(None)),
+                    ).limit(10)
+                )).scalars().all()
+                if sources:
+                    try:
+                        await ingest_due_sources(
+                            limit=10,
+                            concurrency=2,
+                            force=any(source.last_ingested_at is None for source in sources),
+                            source_ids=[source.id for source in sources],
+                        )
+                    except Exception:
+                        logger.exception("Targeted Company Watch refresh failed; scoring cached jobs")
+                stored_company_jobs, stored_ids = await _fetch_stored_company_watch_jobs(db, company_id=run.company_id)
+                live_jobs = []
+                if not stored_company_jobs:
+                    live_jobs = await _fetch_company_directory_jobs(company, aliases, target_locs)
+            else:
+                live_jobs, _ = await asyncio.gather(
+                    _fetch_jobs_from_providers(
+                        queries, target_locs, greenhouse_boards=[], lever_sites=[],
+                    ),
+                    _refresh_company_watch_inventory(),
+                )
+                stored_company_jobs, stored_ids = await _fetch_stored_company_watch_jobs(db)
             all_fetched = list(live_jobs)
             all_fetched.extend(stored_company_jobs)
             logger.info(
@@ -298,9 +376,37 @@ async def run_ai_job_search_task(user_id: int, search_run_id: int):
             for job in jobs_after_hard:
                 job_id = canonical_ids.get((job.source, job.external_id))
                 state = user_states.get(job_id) if job_id is not None else None
-                if state is None or state.status not in {"applied", "dismissed"}:
-                    eligible_jobs.append(job)
+                if state is not None and state.status in {"applied", "dismissed"}:
+                    continue
+                eligible_jobs.append(job)
             jobs_after_hard = eligible_jobs
+            canonical_jobs = {}
+            canonical_id_values = list(set(canonical_ids.values()))
+            for offset in range(0, len(canonical_id_values), 500):
+                chunk = canonical_id_values[offset:offset + 500]
+                rows = await db.execute(select(AIJob).where(AIJob.id.in_(chunk)))
+                canonical_jobs.update({job.id: job for job in rows.scalars().all()})
+
+            assessments = {}
+            resolved_jobs = []
+            for job in jobs_after_hard:
+                key = (job.source, job.external_id)
+                canonical = canonical_jobs.get(canonical_ids.get(key))
+                if canonical is None:
+                    continue
+                assessments[key] = assess_experience(
+                    facts_from_job(canonical), cand_exp_min, cand_exp_max
+                )
+                resolved_jobs.append(job.model_copy(update={
+                    "description": canonical.description,
+                    "description_completeness": canonical.description_completeness,
+                }))
+            jobs_after_hard = resolved_jobs
+            logger.info(
+                "Experience qualification: %s strict=%s range=%s-%s",
+                dict(Counter(result.status for result in assessments.values())),
+                strict_experience, cand_exp_min, cand_exp_max,
+            )
 
             # 7. Deterministic skill extraction + capped LLM fallback
             # -----------------------------------------------------------------
@@ -334,10 +440,15 @@ async def run_ai_job_search_task(user_id: int, search_run_id: int):
                     logger.error(f"Deterministic scoring failed for '{j.title}': {e}")
 
             # Phase 3: capped LLM fallback for low-confidence jobs only
-            llm_cap = min(len(low_conf_jobs), MAX_LLM_FALLBACK_PER_SEARCH)
+            llm_jobs = [
+                (job, skills) for job, skills in low_conf_jobs
+                if not strict_experience
+                or assessments[(job.source, job.external_id)].recommendation_eligible
+            ]
+            llm_cap = 0 if run.search_scope == "company" else min(len(llm_jobs), MAX_LLM_FALLBACK_PER_SEARCH)
             if llm_cap > 0:
                 logger.info(
-                    f"LLM fallback: scoring {llm_cap}/{len(low_conf_jobs)} low-confidence jobs"
+                    f"LLM fallback: scoring {llm_cap}/{len(llm_jobs)} eligible low-confidence jobs"
                 )
                 sem = asyncio.Semaphore(3)
 
@@ -362,13 +473,16 @@ async def run_ai_job_search_task(user_id: int, search_run_id: int):
                         return None
 
                 llm_tasks = [
-                    _score_low_conf(j, js) for j, js in low_conf_jobs[:llm_cap]
+                    _score_low_conf(j, js) for j, js in llm_jobs[:llm_cap]
                 ]
                 llm_results = await asyncio.gather(*llm_tasks)
                 scored_candidates.extend(r for r in llm_results if r is not None)
 
             # Jobs beyond the LLM cap: score deterministically with sparse result
-            for j, job_skills in low_conf_jobs[llm_cap:]:
+            llm_keys = {(job.source, job.external_id) for job, _ in llm_jobs[:llm_cap]}
+            for j, job_skills in low_conf_jobs:
+                if (j.source, j.external_id) in llm_keys:
+                    continue
                 try:
                     score_data = compute_match_score_deterministic(
                         j, profile_schema, job_skills, user_prefs
@@ -406,7 +520,11 @@ async def run_ai_job_search_task(user_id: int, search_run_id: int):
 
             unique_scored.sort(key=resurfacing_key, reverse=True)
             match_candidates = unique_scored
-            top_candidates = match_candidates[:SURFACED_JOB_LIMIT]
+            top_candidates = [
+                candidate for candidate in match_candidates
+                if not strict_experience
+                or assessments[(candidate[0].source, candidate[0].external_id)].recommendation_eligible
+            ][:SURFACED_JOB_LIMIT]
             logger.info(
                 "Returned candidates by provider: %s",
                 dict(Counter(job.source for job, _ in top_candidates)),
@@ -417,6 +535,7 @@ async def run_ai_job_search_task(user_id: int, search_run_id: int):
                 canonical_key = (canonical_job.source, canonical_job.external_id)
                 job_id = canonical_ids[canonical_key]
                 state = user_states.get(job_id)
+                assessment = assessments[canonical_key]
                 match_record = AIJobMatch(
                     search_run_id=search_run_id,
                     user_id=user_id,
@@ -430,6 +549,9 @@ async def run_ai_job_search_task(user_id: int, search_run_id: int):
                     gaps=score_info["gaps"],
                     skills_overlap=score_info["skills_overlap"],
                     experience_fit=score_info["experience_fit"],
+                    experience_status=assessment.status,
+                    experience_reason=assessment.reason,
+                    seniority_conflict=assessment.seniority_conflict,
                     role_similarity=score_info["role_similarity"],
                     location_fit=score_info["location_fit"],
                     industry_fit=score_info["industry_fit"],

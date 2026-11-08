@@ -3,7 +3,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, UploadFile, File, BackgroundTasks, Query, HTTPException
-from sqlalchemy import and_, func, or_, select, update, delete
+from sqlalchemy import and_, case, exists, func, or_, select, update, delete
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -17,13 +17,24 @@ from app.ai_job_search.schemas import (
     UserPreferencesUpdate,
     JobMatchCardResponse,
     SearchRunStatusResponse,
-    MatchActionRequest
+    MatchActionRequest,
+    DeleteAIJobsRequest,
+    CompanySearchRequest,
 )
 from app.ai_job_search.parser import parse_resume_content
 from app.ai_job_search.services import run_ai_job_search_task
-from app.ai_job_search.matching import classify_company
+
+TOP_MATCH_SCORE_THRESHOLD = 80.0
+from app.ai_job_search.matching import (
+    candidate_experience_range,
+    classify_company,
+)
+from app.ai_job_search.experience import assess_experience, facts_from_job
 from app.services.application import create_application_from_ai_job
 from app.config import settings
+from app.models.companies import Company
+from app.company_watch.models import CompanyIntelligence, CompanySource
+from app.company_watch.providers import SUPPORTED_PROVIDERS
 
 logger = logging.getLogger(__name__)
 
@@ -149,7 +160,10 @@ async def upload_resume(
     if not contents:
         raise HTTPException(status_code=400, detail="Uploaded file is empty.")
 
-    profile_schema = await parse_resume_content(contents, file.filename or "resume.pdf")
+    try:
+        profile_schema = await parse_resume_content(contents, file.filename or "resume.pdf")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     stmt = select(UserResumeProfile).where(UserResumeProfile.user_id == current_user.id).order_by(UserResumeProfile.id.desc())
     res = await db.execute(stmt)
@@ -217,8 +231,16 @@ async def update_preferences(
     update_data = prefs.model_dump(exclude_unset=True)
 
     for k, v in update_data.items():
-        if v is not None:
+        if v is not None or k in {"experience_min_years", "experience_max_years"}:
             curr_prefs[k] = v
+
+    if (
+        prefs.years_experience is not None
+        and "experience_min_years" not in update_data
+        and "experience_max_years" not in update_data
+    ):
+        curr_prefs.pop("experience_min_years", None)
+        curr_prefs.pop("experience_max_years", None)
 
     # Also update parsed_profile if years_experience was explicitly updated
     if prefs.years_experience is not None and profile.parsed_profile:
@@ -247,7 +269,9 @@ async def trigger_job_search(
     if not profile:
         raise HTTPException(status_code=400, detail="Resume required. Please upload your resume first.")
 
-    run_stmt = select(SearchRun).where(SearchRun.user_id == current_user.id).order_by(SearchRun.id.desc())
+    run_stmt = select(SearchRun).where(
+        SearchRun.user_id == current_user.id, SearchRun.search_scope == "general"
+    ).order_by(SearchRun.id.desc())
     run_res = await db.execute(run_stmt)
     latest_run = run_res.scalars().first()
 
@@ -270,6 +294,111 @@ async def trigger_job_search(
     return new_run
 
 
+@router.get("/companies")
+async def list_search_companies(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Registered companies and whether a verified source can be searched."""
+    rows = (await db.execute(
+        select(Company, CompanyIntelligence, CompanySource)
+        .join(CompanyIntelligence, CompanyIntelligence.company_id == Company.id)
+        .outerjoin(CompanySource, CompanySource.company_id == Company.id)
+        .where(CompanyIntelligence.is_active.is_(True))
+        .order_by(Company.name)
+    )).all()
+    companies: dict[int, dict] = {}
+    for company, intelligence, source in rows:
+        item = companies.setdefault(company.id, {
+            "id": company.id,
+            "name": company.name,
+            "fetchable": False,
+            "directory_available": bool(settings.ADZUNA_APP_ID and settings.ADZUNA_APP_KEY),
+            "careers_url": intelligence.careers_url,
+            "website_url": company.website,
+            "status": intelligence.discovery_status,
+        })
+        if source is None:
+            if not intelligence.careers_url and not company.website:
+                item["status"] = "needs_careers_url"
+            continue
+        ready = (
+            source.is_active
+            and source.provider in SUPPORTED_PROVIDERS
+            and (source.last_verified_at is not None or source.last_success_at is not None)
+            and source.ownership_status in {"registry_trusted", "ownership_verified"}
+            and source.status not in {"unverified", "stale", "unsupported", "adapter_required", "ownership_conflict"}
+        )
+        if ready:
+            item["fetchable"] = True
+            item["status"] = source.status
+        elif not item["fetchable"]:
+            item["status"] = "adapter_required" if source.provider not in SUPPORTED_PROVIDERS else source.status
+    return list(companies.values())
+
+
+@router.post("/company-search", response_model=SearchRunStatusResponse)
+async def trigger_company_search(
+    request: CompanySearchRequest,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    profile = await db.scalar(
+        select(UserResumeProfile).where(UserResumeProfile.user_id == current_user.id)
+        .order_by(UserResumeProfile.id.desc())
+    )
+    if not profile:
+        raise HTTPException(status_code=400, detail="Please upload a resume before searching.")
+    company = await db.get(Company, request.company_id)
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found in the registry.")
+    intelligence = await db.get(CompanyIntelligence, request.company_id)
+    if not intelligence or not intelligence.is_active:
+        raise HTTPException(status_code=409, detail="This company is not active in Company Watch.")
+    sources = (await db.execute(select(CompanySource).where(
+        CompanySource.company_id == company.id,
+        CompanySource.is_active.is_(True),
+    ))).scalars().all()
+    fetchable = any(
+        source.provider in SUPPORTED_PROVIDERS
+        and (source.last_verified_at or source.last_success_at)
+        and source.ownership_status in {"registry_trusted", "ownership_verified"}
+        and source.status not in {"unverified", "stale", "unsupported", "adapter_required", "ownership_conflict"}
+        for source in sources
+    )
+    if not fetchable and not (settings.ADZUNA_APP_ID and settings.ADZUNA_APP_KEY):
+        reason = (
+            "No careers URL is registered yet."
+            if not intelligence.careers_url and not company.website
+            else "No verified fetching adapter or job directory is available for this company yet."
+        )
+        raise HTTPException(status_code=409, detail=reason)
+    latest_run = await db.scalar(select(SearchRun).where(
+        SearchRun.user_id == current_user.id,
+        SearchRun.search_scope == "company",
+        SearchRun.company_id == company.id,
+    ).order_by(SearchRun.id.desc()))
+    if latest_run and latest_run.started_at:
+        age = (datetime.utcnow() - latest_run.started_at).total_seconds()
+        if latest_run.status in {"queued", "running"} and age < 600:
+            return latest_run
+
+    run = SearchRun(
+        user_id=current_user.id,
+        profile_version_id=profile.id,
+        search_scope="company",
+        company_id=company.id,
+        status="queued",
+        started_at=datetime.utcnow(),
+    )
+    db.add(run)
+    await db.commit()
+    await db.refresh(run)
+    background_tasks.add_task(run_ai_job_search_task, current_user.id, run.id)
+    return run
+
+
 @router.get("/runs/{run_id}", response_model=SearchRunStatusResponse)
 async def get_search_run_status(
     run_id: int,
@@ -285,10 +414,12 @@ async def get_search_run_status(
 
 @router.get("", response_model=List[JobMatchCardResponse])
 async def get_ai_matched_jobs(
-    view: str = Query("new", pattern="^(for_you|top_matches|new|all_active|all_unapplied|saved|applied)$"),
+    view: str = Query("new", pattern="^(for_you|top_matches|new|all_active|all_unapplied|saved|applied|company)$"),
     industry: Optional[str] = Query(None),
     company_type: Optional[str] = Query(None),
     company_name: Optional[str] = Query(None),
+    company_id: Optional[int] = Query(None, ge=1),
+    qualified_only: bool = Query(False),
     min_score: float = Query(60.0),
     min_salary: Optional[float] = Query(None),
     remote_only: bool = Query(False),
@@ -301,15 +432,30 @@ async def get_ai_matched_jobs(
     """Fetch user's scored 'AI Found Jobs' dashboard cards with company search, salary filters, and sorting."""
     latest_completed_run = (
         select(SearchRun.id)
-        .where(SearchRun.user_id == current_user.id, SearchRun.status == "completed")
+        .where(SearchRun.user_id == current_user.id, SearchRun.status == "completed", SearchRun.search_scope == "general")
         .order_by(SearchRun.started_at.desc(), SearchRun.id.desc())
         .limit(1)
         .scalar_subquery()
     )
+    if view == "company":
+        if company_id is None:
+            raise HTTPException(status_code=422, detail="company_id is required for company results")
+        latest_company_run = (
+            select(SearchRun.id)
+            .where(
+                SearchRun.user_id == current_user.id,
+                SearchRun.status == "completed",
+                SearchRun.search_scope == "company",
+                SearchRun.company_id == company_id,
+            )
+            .order_by(SearchRun.started_at.desc(), SearchRun.id.desc())
+            .limit(1)
+            .scalar_subquery()
+        )
     ranked_matches = (
         select(
             AIJobMatch.id.label("match_id"),
-            func.min(AIJobMatch.search_run_id)
+            func.min(case((SearchRun.search_scope == "general", AIJobMatch.search_run_id)))
             .over(partition_by=AIJobMatch.job_id)
             .label("first_run_id"),
             func.row_number()
@@ -319,7 +465,9 @@ async def get_ai_matched_jobs(
             )
             .label("match_rank"),
         )
+        .join(SearchRun, SearchRun.id == AIJobMatch.search_run_id)
         .where(AIJobMatch.user_id == current_user.id)
+        .where(AIJobMatch.search_run_id == latest_company_run if view == "company" else True)
         .subquery()
     )
     stmt = (
@@ -362,10 +510,21 @@ async def get_ai_matched_jobs(
             stmt = stmt.where(
                 ranked_matches.c.first_run_id == latest_completed_run
             )
-        elif view in ("for_you", "top_matches"):
+        elif view == "for_you":
             stmt = stmt.where(
                 ranked_matches.c.first_run_id != latest_completed_run,
                 AIJobMatch.match_score >= min_score,
+            )
+        elif view == "top_matches":
+            stmt = stmt.where(
+                AIJobMatch.match_score >= TOP_MATCH_SCORE_THRESHOLD,
+            )
+        elif view == "company":
+            if qualified_only:
+                stmt = stmt.where(AIJobMatch.match_score >= TOP_MATCH_SCORE_THRESHOLD)
+        if view in ("new", "top_matches") or (view == "company" and qualified_only):
+            stmt = stmt.where(
+                or_(UserJobState.id.is_(None), UserJobState.status == "viewed")
             )
 
     if remote_only:
@@ -375,8 +534,30 @@ async def get_ai_matched_jobs(
 
     rows = (await db.execute(stmt)).all()
 
+    profile_result = await db.execute(
+        select(UserResumeProfile)
+        .where(UserResumeProfile.user_id == current_user.id)
+        .order_by(UserResumeProfile.id.desc())
+    )
+    resume_profile = profile_result.scalars().first()
+    preferences = (resume_profile.user_preferences or {}) if resume_profile else {}
+    candidate_profile = ResumeProfileSchema(**(resume_profile.parsed_profile or {})) if resume_profile else ResumeProfileSchema()
+    exp_min, exp_max = candidate_experience_range(preferences, candidate_profile)
+    strict_experience = any(
+        preferences.get(key) is not None
+        for key in ("experience_min_years", "experience_max_years")
+    )
+
     output: List[JobMatchCardResponse] = []
     for m, job, user_state in rows:
+        facts = facts_from_job(job)
+        assessment = assess_experience(facts, exp_min, exp_max)
+        if (
+            strict_experience
+            and (view in {"top_matches", "for_you"} or (view == "company" and qualified_only))
+            and not assessment.recommendation_eligible
+        ):
+            continue
 
         if min_salary and min_salary > 0:
             sal = job.salary_max or job.salary_min or 0
@@ -409,6 +590,16 @@ async def get_ai_matched_jobs(
             is_saved=bool(user_state and (user_state.saved_at or user_state.status == "saved")),
             skills_overlap=m.skills_overlap,
             experience_fit=m.experience_fit,
+            experience_status=assessment.status,
+            experience_reason=assessment.reason,
+            required_experience_min=facts.required_min,
+            required_experience_max=facts.required_max,
+            experience_source=facts.source,
+            experience_confidence=facts.confidence,
+            experience_evidence=facts.evidence,
+            description_completeness=facts.description_completeness,
+            seniority_level=facts.seniority_level,
+            seniority_conflict=assessment.seniority_conflict,
             role_similarity=m.role_similarity,
             location_fit=m.location_fit,
             industry_fit=m.industry_fit,
@@ -451,6 +642,68 @@ async def get_ai_matched_jobs(
         output.sort(key=lambda c: c.match_score, reverse=True)
 
     return output[offset : offset + limit]
+
+
+@router.delete("")
+async def delete_ai_jobs(
+    req: DeleteAIJobsRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Remove this user's AI job matches and delete canonical rows only when unshared."""
+    if req.delete_all:
+        owned_ids = select(AIJobMatch.job_id).where(AIJobMatch.user_id == current_user.id).union(
+            select(UserJobState.job_id).where(UserJobState.user_id == current_user.id)
+        )
+    else:
+        requested = set(req.job_ids)
+        match_ids = await db.scalars(
+            select(AIJobMatch.job_id).where(
+                AIJobMatch.user_id == current_user.id,
+                AIJobMatch.job_id.in_(requested),
+            ).distinct()
+        )
+        state_ids = await db.scalars(
+            select(UserJobState.job_id).where(
+                UserJobState.user_id == current_user.id,
+                UserJobState.job_id.in_(requested),
+            ).distinct()
+        )
+        owned_ids = set(match_ids.all()) | set(state_ids.all())
+
+    if req.delete_all:
+        candidate_job_ids = list((await db.scalars(owned_ids)).all())
+    else:
+        candidate_job_ids = list(owned_ids)
+    if not candidate_job_ids:
+        return {"deleted_matches": 0, "deleted_states": 0, "deleted_jobs": 0, "retained_shared_jobs": 0}
+
+    match_result = await db.execute(
+        delete(AIJobMatch).where(
+            AIJobMatch.user_id == current_user.id,
+            AIJobMatch.job_id.in_(candidate_job_ids),
+        )
+    )
+    state_result = await db.execute(
+        delete(UserJobState).where(
+            UserJobState.user_id == current_user.id,
+            UserJobState.job_id.in_(candidate_job_ids),
+        )
+    )
+    unshared = delete(AIJob).where(
+        AIJob.id.in_(candidate_job_ids),
+        ~exists(select(AIJobMatch.id).where(AIJobMatch.job_id == AIJob.id)),
+        ~exists(select(UserJobState.id).where(UserJobState.job_id == AIJob.id)),
+    )
+    job_result = await db.execute(unshared)
+    await db.commit()
+    deleted_jobs = job_result.rowcount or 0
+    return {
+        "deleted_matches": match_result.rowcount or 0,
+        "deleted_states": state_result.rowcount or 0,
+        "deleted_jobs": deleted_jobs,
+        "retained_shared_jobs": len(candidate_job_ids) - deleted_jobs,
+    }
 
 
 @router.post("/matches/{match_id}/action")

@@ -139,6 +139,7 @@ def _normalize(item: dict, is_india: bool) -> NormalizedJobSchema:
         location=loc,
         remote=is_remote,
         description=desc,
+        description_completeness="snippet",
         salary_min=float(sal_min) if sal_min else None,
         salary_max=float(sal_max) if sal_max else None,
         salary_currency=currency,

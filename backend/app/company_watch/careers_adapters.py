@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import re
 from datetime import datetime
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import urlencode, urljoin, urlsplit
 
 from bs4 import BeautifulSoup
 
@@ -28,6 +28,14 @@ def normalized_job(source, identity, title, location, url, description=None, pos
         try:
             date = datetime.fromisoformat(posted.replace("Z", "+00:00")).replace(tzinfo=None)
         except ValueError:
+            try:
+                date = datetime.strptime(posted, "%B %d, %Y")
+            except ValueError:
+                pass
+    elif isinstance(posted, (int, float)):
+        try:
+            date = datetime.utcfromtimestamp(posted / 1000 if posted > 10_000_000_000 else posted)
+        except (OverflowError, OSError, ValueError):
             pass
     return NormalizedJobSchema(
         job_hash=hashlib.sha256(f"{source.provider}:{external}".encode()).hexdigest(),
@@ -40,6 +48,237 @@ def normalized_job(source, identity, title, location, url, description=None, pos
 def fetch_result(jobs, count, complete, pages, error=None):
     from app.company_watch.providers import FetchResult
     return FetchResult(tuple(jobs.values()), count, complete, pages_fetched=pages, error=error)
+
+
+class AmazonAdapter:
+    page_size = 100
+    max_pages = 30
+
+    @staticmethod
+    def page_url(offset):
+        query = [
+            ("country", "IND"), ("offset", str(offset)), ("result_limit", str(AmazonAdapter.page_size)),
+            ("sort", "recent"), ("radius", "24km"),
+            *(("facets[]", facet) for facet in (
+                "normalized_country_code", "normalized_state_name", "normalized_city_name",
+                "location", "business_category", "category", "schedule_type_id",
+                "employee_class", "normalized_location", "job_function_id",
+            )),
+        ]
+        return "https://www.amazon.jobs/en/search.json?" + urlencode(query)
+
+    async def fetch(self, source, request):
+        from app.company_watch.detection import detect_url
+        candidate = detect_url(source.source_url)
+        if source.identifier.lower() != "amazon" or not candidate or candidate.provider != "amazon":
+            raise ValueError("Amazon source URL and company identity disagree")
+        jobs, seen, offset, total, pages = {}, set(), 0, None, 0
+        try:
+            for _ in range(self.max_pages):
+                response = await request(self.page_url(offset))
+                response.raise_for_status()
+                payload = response.json()
+                items, current_total = payload.get("jobs"), payload.get("hits")
+                if not isinstance(items, list) or type(current_total) is not int or current_total < 0:
+                    raise ValueError("Malformed Amazon India inventory")
+                if total is None:
+                    total = current_total
+                elif total != current_total:
+                    raise ValueError("Amazon inventory changed during pagination")
+                pages += 1
+                for item in items:
+                    identity = str(item.get("id") or "").strip()
+                    path = item.get("job_path")
+                    if not identity or identity in seen or not isinstance(path, str) or not path.startswith("/en/jobs/"):
+                        raise ValueError("Amazon posting has a missing or duplicate identity/path")
+                    if item.get("country_code") != "IND":
+                        raise ValueError("Amazon India query returned a posting outside India")
+                    seen.add(identity)
+                    location = item.get("location") or ", ".join(
+                        str(value) for value in (item.get("city"), item.get("state"), "India") if value
+                    )
+                    description = "\n\n".join(filter(None, (
+                        item.get("description"),
+                        item.get("basic_qualifications"),
+                        item.get("preferred_qualifications"),
+                    )))
+                    jobs[identity] = normalized_job(
+                        source, identity, item.get("title"), location,
+                        urljoin("https://www.amazon.jobs", path), description, item.get("posted_date"),
+                    )
+                offset += len(items)
+                if offset == total:
+                    return fetch_result(jobs, len(seen), True, pages)
+                if not items or offset > total:
+                    raise ValueError("Amazon pagination is incomplete")
+            raise ValueError("Amazon page budget exhausted")
+        except Exception as exc:
+            if not pages:
+                raise
+            return fetch_result(jobs, len(seen), False, pages, str(exc)[:1000])
+
+
+class OracleAdapter:
+    page_size = 100
+    max_pages = 20
+
+    @staticmethod
+    def page_url(host, site, offset):
+        finder = f"findReqs;siteNumber={site},location=India,limit={OracleAdapter.page_size},offset={offset}"
+        query = urlencode({
+            "onlyData": "true",
+            "expand": "requisitionList.secondaryLocations",
+            "finder": finder,
+            "limit": str(OracleAdapter.page_size),
+        })
+        return f"https://{host}/hcmRestApi/resources/latest/recruitingCEJobRequisitions?{query}"
+
+    async def fetch(self, source, request):
+        from app.company_watch.detection import detect_url
+        candidate = detect_url(source.source_url)
+        if not candidate or candidate.provider != "oracle" or candidate.identifier.lower() != source.identifier.lower():
+            raise ValueError("Oracle source URL and site identity disagree")
+        host, site = source.identifier.split(":", 1)
+        if not host.endswith(".oraclecloud.com") or not re.fullmatch(r"[A-Za-z0-9_-]+", site):
+            raise ValueError("Invalid Oracle Candidate Experience identity")
+        jobs, seen, offset, total, pages = {}, set(), 0, None, 0
+        try:
+            for _ in range(self.max_pages):
+                response = await request(self.page_url(host, site, offset))
+                response.raise_for_status()
+                payload = response.json()
+                containers = payload.get("items")
+                if not isinstance(containers, list) or not containers:
+                    raise ValueError("Malformed Oracle Recruiting inventory")
+                container = next((item for item in containers if item.get("SiteNumber") == site), containers[0])
+                items, current_total = container.get("requisitionList"), container.get("TotalJobsCount")
+                if not isinstance(items, list) or type(current_total) is not int or current_total < 0:
+                    raise ValueError("Oracle Recruiting response lacks listing rows or total count")
+                if total is None:
+                    total = current_total
+                elif total != current_total:
+                    raise ValueError("Oracle India inventory changed during pagination")
+                pages += 1
+                for item in items:
+                    identity = str(item.get("Id") or "").strip()
+                    country = str(item.get("PrimaryLocationCountry") or "").upper()
+                    if not identity or identity in seen:
+                        raise ValueError("Oracle posting has a missing or duplicate identity")
+                    if country not in {"IN", "IND"}:
+                        raise ValueError("Oracle India location search returned a non-India posting")
+                    seen.add(identity)
+                    jobs[identity] = normalized_job(
+                        source, identity, item.get("Title"), item.get("PrimaryLocation"),
+                        f"https://{host}/hcmUI/CandidateExperience/en/sites/{site}/job/{identity}",
+                        item.get("ShortDescriptionStr"), item.get("PostedDate"),
+                    )
+                offset += len(items)
+                if offset == total:
+                    return fetch_result(jobs, len(seen), True, pages)
+                if not items or offset > total:
+                    raise ValueError("Oracle Recruiting pagination is incomplete")
+            raise ValueError("Oracle Recruiting page budget exhausted")
+        except Exception as exc:
+            if not pages:
+                raise
+            return fetch_result(jobs, len(seen), False, pages, str(exc)[:1000])
+
+
+class EightfoldAdapter:
+    page_size = 10
+    max_pages = 44
+
+    @staticmethod
+    def page_url(host, domain, start):
+        query = urlencode({"domain": domain, "location": "India", "query": "", "start": start, "num": EightfoldAdapter.page_size})
+        return f"https://{host}/api/pcsx/search?{query}"
+
+    @staticmethod
+    def _location(position):
+        values = position.get("standardizedLocations") or position.get("locations") or []
+        if isinstance(values, (str, dict)):
+            values = [values]
+        labels = []
+        for value in values:
+            if isinstance(value, str):
+                labels.append("India" if value.strip().upper() == "IN" else value)
+            elif isinstance(value, dict):
+                label = ", ".join(str(part) for part in (value.get("city"), value.get("state"), value.get("country"), value.get("name")) if part)
+                if label:
+                    labels.append(label)
+        primary = position.get("primaryLocation") or position.get("primary_location")
+        if not labels and isinstance(primary, str):
+            labels.append(primary)
+        elif not labels and isinstance(primary, dict):
+            labels.append(", ".join(str(part) for part in (primary.get("city"), primary.get("state"), primary.get("country"), primary.get("name")) if part))
+        return "; ".join(dict.fromkeys(labels))
+
+    async def fetch(self, source, request):
+        from app.company_watch.detection import detect_url
+        candidate = detect_url(source.source_url)
+        if not candidate or candidate.provider != "eightfold" or candidate.identifier.lower() != source.identifier.lower():
+            raise ValueError("Eightfold source URL and tenant identity disagree")
+        host = source.identifier.lower()
+        if not re.fullmatch(r"[a-z0-9.-]+\.eightfold\.ai", host) and host != "careers.qualcomm.com":
+            raise ValueError("Invalid Eightfold tenant host")
+        domain = urlsplit(source.source_url)
+        from urllib.parse import parse_qs
+        domain_query = parse_qs(domain.query).get("domain", [None])[0]
+        tenant = host.split(".", 1)[0]
+        company_slug = re.sub(r"[^a-z0-9]", "", source.company.lower())
+        if not domain_query and tenant in company_slug:
+            domain_query = f"{tenant}.com"
+        if not domain_query or not re.fullmatch(r"[A-Za-z0-9.-]+", domain_query):
+            raise ValueError("Eightfold careers domain is not evidenced")
+        jobs, seen, start, total, pages = {}, set(), 0, None, 0
+        try:
+            for _ in range(self.max_pages):
+                response = await request(self.page_url(host, domain_query, start))
+                response.raise_for_status()
+                payload = response.json()
+                data = payload.get("data")
+                items = data.get("positions") if isinstance(data, dict) else None
+                current_total = data.get("count") if isinstance(data, dict) else None
+                if not isinstance(items, list) or type(current_total) is not int or current_total < 0:
+                    raise ValueError("Malformed Eightfold India inventory")
+                if total is None:
+                    total = current_total
+                elif total != current_total:
+                    raise ValueError("Eightfold inventory changed during pagination")
+                if len(items) > self.page_size:
+                    raise ValueError("Eightfold exceeded its requested page size")
+                pages += 1
+                for item in items:
+                    identity = str(item.get("id") or item.get("displayJobId") or item.get("display_job_id") or "").strip()
+                    location = self._location(item)
+                    if not identity or identity in seen:
+                        raise ValueError("Eightfold posting has a missing or duplicate identity")
+                    india_code = re.search(r"(?:^|[,;\s])IN(?:$|[,;\s])", location, re.IGNORECASE)
+                    if location and "india" not in location.lower() and not india_code:
+                        raise ValueError("Eightfold India search returned a posting without India location evidence")
+                    if not location:
+                        location = "India"
+                    seen.add(identity)
+                    path = item.get("positionUrl") or item.get("position_url") or item.get("canonicalPositionUrl") or item.get("canonical_position_url")
+                    if not path:
+                        path = f"/careers/job/{identity}"
+                    url = urljoin(f"https://{host}/", path)
+                    if urlsplit(url).hostname != host:
+                        raise ValueError("Eightfold posting link escaped its verified tenant")
+                    posted = item.get("postedTs") or item.get("creationTs") or item.get("t_create")
+                    description = item.get("jobDescription") or item.get("job_description")
+                    jobs[identity] = normalized_job(source, identity,
+                        item.get("name") or item.get("posting_name") or item.get("title"), location, url, description, posted)
+                start += len(items)
+                if start == total:
+                    return fetch_result(jobs, len(seen), True, pages)
+                if not items or start > total:
+                    raise ValueError("Eightfold pagination is incomplete")
+            raise ValueError("Eightfold page budget exhausted")
+        except Exception as exc:
+            if not pages:
+                raise
+            return fetch_result(jobs, len(seen), False, pages, str(exc)[:1000])
 
 
 class GoogleAdapter:

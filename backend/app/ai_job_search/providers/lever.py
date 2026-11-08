@@ -206,6 +206,7 @@ class LeverProvider(JobProvider):
                 or "remote" in f"{location} {title}".lower()
             ),
             description=description or None,
+            description_completeness="full" if description else "unknown",
             salary_min=float(salary_min) if salary_min is not None else None,
             salary_max=float(salary_max) if salary_max is not None else None,
             salary_currency=salary_range.get("currency") if isinstance(salary_range, dict) else None,

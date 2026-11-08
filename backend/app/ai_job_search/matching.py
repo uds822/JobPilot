@@ -6,6 +6,7 @@ import httpx
 
 
 from app.config import settings
+from app.ai_job_search.experience import assess_experience, extract_experience_facts
 from app.ai_job_search.schemas import ResumeProfileSchema, NormalizedJobSchema
 
 logger = logging.getLogger(__name__)
@@ -21,11 +22,13 @@ Return ONLY a valid JSON object with these exact keys and numeric values 0-100:
 skills_overlap, experience_fit, role_similarity, location_fit, industry_fit, company_type_fit, posting_freshness.
 Also include: strengths (list of 1-2 short strings), gaps (list of 1-2 short strings).
 
-CANDIDATE: Skills: {skills}. Experience: {exp} years. Recent roles: {titles}.
+CANDIDATE: Core skills: {primary_skills}. Supporting skills: {supporting_skills}.
+Tools: {tools}. Domain expertise: {domain_skills}. Experience: {exp} years.
+Target roles: {target_roles}. Recent roles: {titles}.
 JOB: Title: {title}. Company: {company}. Location: {location}.
 Description: {desc}
 
-RULE: If job requires more than {exp_limit} years experience, set experience_fit=20. Otherwise set experience_fit to 85 or higher.
+RULE: Do not infer required years from the title or treat missing years as a confirmed experience fit.
 Return ONLY the JSON object. No other text.\
 """
 
@@ -59,24 +62,106 @@ def classify_company(company_name: str, job_title: str, description: str) -> Tup
     return (industry, c_type, 0.80)
 
 
-def extract_required_experience(title: str, description: str) -> Optional[float]:
-    """Extract minimum required years of experience via regex."""
+def extract_required_experience_range(
+    title: str, description: str
+) -> Optional[Tuple[float, Optional[float]]]:
+    """Extract an explicit experience lower bound and optional upper bound."""
     text = f"{title} {description}".lower()
-    patterns = [
-        r'(?:min|minimum|at least)?\s*(\d+(?:\.\d+)?)\s*(?:-|to|\+)?\s*(?:\d+(?:\.\d+)?)?\s*(?:yrs?|years?)\s*(?:of)?\s*(?:exp|experience)?',
-        r'(\d+(?:\.\d+)?)\s*\+\s*(?:yrs?|years?)',
-        r'(\d+(?:\.\d+)?)\s*to\s*(\d+(?:\.\d+)?)\s*years'
-    ]
-    for pat in patterns:
-        m = re.search(pat, text)
-        if m:
-            try:
-                val = float(m.group(1))
-                if 0.5 <= val <= 25.0:
-                    return val
-            except ValueError:
-                pass
+    number = r"\d+(?:\.\d+)?"
+    range_patterns = (
+        rf"\b(?P<low>{number})\s*(?:-|\u2013|to)\s*(?P<high>{number})\s*(?:yrs?|years?)(?:['\u2019])?\s+(?:of\s+)?(?:[a-z+#./-]+\s+){{0,5}}(?:experience|exp)\b",
+        rf"\b(?:experience|exp)\s+(?:of\s+)?(?P<low>{number})\s*(?:-|\u2013|to)\s*(?P<high>{number})\s*(?:yrs?|years?)\b",
+    )
+    for pattern in range_patterns:
+        match = re.search(pattern, text)
+        if match:
+            low, high = float(match.group("low")), float(match.group("high"))
+            if 0 <= low <= high <= 40:
+                return low, high
+
+    minimum_patterns = (
+        rf"\b(?:at\s+least\s+|minimum\s+(?:of\s+)?|min\.?\s*)?(?P<low>{number})\s*\+\s*(?:yrs?|years?)(?:['\u2019])?\s+(?:of\s+)?(?:[a-z+#./-]+\s+){{0,5}}(?:experience|exp)\b",
+        rf"\b(?:at\s+least\s+|minimum\s+(?:of\s+)?|min\.?\s*)(?P<low>{number})\s*(?:yrs?|years?)(?:['\u2019])?\s+(?:of\s+)?(?:[a-z+#./-]+\s+){{0,5}}(?:experience|exp)\b",
+        rf"\b(?P<low>{number})\s*(?:yrs?|years?)(?:['\u2019])?\s+(?:of\s+)?(?:[a-z+#./-]+\s+){{0,5}}(?:experience|exp)\b",
+    )
+    for pattern in minimum_patterns:
+        match = re.search(pattern, text)
+        if match:
+            low = float(match.group("low"))
+            if 0 <= low <= 40:
+                return low, None
     return None
+
+
+def extract_required_experience(title: str, description: str) -> Optional[float]:
+    """Backward-compatible helper returning the explicit minimum years."""
+    experience_range = extract_required_experience_range(title, description)
+    return experience_range[0] if experience_range else None
+
+
+def candidate_experience_range(
+    user_prefs: Dict[str, Any], profile: ResumeProfileSchema
+) -> Tuple[Optional[float], Optional[float]]:
+    """Read the user's confirmed range, falling back to the legacy resume estimate."""
+    low = user_prefs.get("experience_min_years")
+    high = user_prefs.get("experience_max_years")
+    if (
+        "experience_min_years" not in user_prefs
+        and "experience_max_years" not in user_prefs
+    ):
+        legacy = user_prefs.get("years_experience")
+        if legacy is None:
+            legacy = profile.years_experience
+        if legacy is None or float(legacy) <= 0:
+            return None, None
+        return float(legacy), float(legacy)
+    return (
+        float(low) if low is not None else None,
+        float(high) if high is not None else None,
+    )
+
+
+def experience_fit_score(
+    job: NormalizedJobSchema, profile: ResumeProfileSchema, user_prefs: Dict[str, Any]
+) -> float:
+    candidate_min, candidate_max = candidate_experience_range(user_prefs, profile)
+    facts = extract_experience_facts(
+        job.title, job.description, completeness=job.description_completeness
+    )
+    assessment = assess_experience(facts, candidate_min, candidate_max)
+    if assessment.seniority_conflict or assessment.status == "mismatched":
+        return 20.0
+    if assessment.status == "matched":
+        return 95.0
+    return 70.0
+
+
+def experience_range_matches(
+    title: str,
+    description: str,
+    candidate_min: Optional[float],
+    candidate_max: Optional[float],
+) -> bool:
+    """Keep unknown requirements; otherwise require the candidate and role ranges to overlap."""
+    required = extract_required_experience_range(title, description)
+    if required is None:
+        normalized_title = title.lower()
+        if re.search(r"\b(?:staff|principal|director|distinguished)\b|\bhead\s+of\b", normalized_title):
+            required = (8.0, None)
+        elif re.search(r"\b(?:senior|sr\.?)\b|\b(?:engineering|technical|team)\s+lead\b", normalized_title):
+            required = (5.0, None)
+    if required is None or (candidate_min is None and candidate_max is None):
+        return True
+    required_min, required_max = required
+    if candidate_max is not None and required_min > candidate_max + 0.25:
+        return False
+    if (
+        candidate_min is not None
+        and required_max is not None
+        and required_max < candidate_min - 0.25
+    ):
+        return False
+    return True
 
 
 def _extract_json(raw: str) -> dict:
@@ -154,24 +239,30 @@ async def compute_match_score_llm(
     Score job against candidate profile using Groq (primary) or OpenRouter (fallback).
     Falls back to heuristic scoring if both LLMs are unavailable.
     """
-    cand_exp = float(user_prefs.get("years_experience") or profile.years_experience or 1.0)
+    exp_min, exp_max = candidate_experience_range(user_prefs, profile)
+    cand_exp = exp_max if exp_max is not None else (exp_min or 1.0)
     skills_str = ", ".join(profile.skills[:10]) if profile.skills else "Not specified"
-    titles_str = ", ".join(profile.recent_titles[:3]) if profile.recent_titles else "Software Engineer"
+    groups = profile.skill_groups
+    titles_str = ", ".join(profile.recent_titles[:3]) or "Not specified"
     desc_snippet = (job.description or "")[:800]
 
     prompt = RESUME_SCHEMA_PROMPT.format(
-        skills=skills_str,
-        exp=cand_exp,
+        primary_skills=", ".join(groups.primary[:8]) or skills_str,
+        supporting_skills=", ".join(groups.supporting[:8]) or "Not specified",
+        tools=", ".join(groups.tools[:8]) or "Not specified",
+        domain_skills=", ".join(groups.domain[:8]) or "Not specified",
+        target_roles=", ".join(profile.target_roles[:5]) or "Not specified",
+        exp=(f"{exp_min:g}-{exp_max:g}" if exp_min is not None and exp_max is not None and exp_min != exp_max else f"{cand_exp:g}"),
         titles=titles_str,
         title=job.title,
         company=job.company,
         location=job.location,
         desc=desc_snippet,
-        exp_limit=round(cand_exp + 1.0, 1),
     )
 
     factors = await _call_llm(prompt, timeout=15.0)
     if factors:
+        factors["experience_fit"] = experience_fit_score(job, profile, user_prefs)
         ind, c_type, _ = classify_company(job.company, job.title, job.description or "")
         return _calculate_weighted_score(job, profile, factors, ind, c_type)
 
@@ -187,7 +278,6 @@ async def _heuristic_score(
 ) -> Dict[str, Any]:
     """Pure Python heuristic scoring — no LLM required."""
     job_text = f"{job.title} {job.description}".lower()
-    cand_exp = float(user_prefs.get("years_experience") or profile.years_experience or 1.0)
 
     matching = [s for s in profile.skills if s.lower() in job_text]
     missing = [s for s in profile.skills if s.lower() not in job_text]
@@ -195,16 +285,9 @@ async def _heuristic_score(
     skills_score = (len(matching) / max(len(profile.skills), 1)) * 100.0
     skills_score = min(100.0, max(20.0, skills_score + 15.0 if matching else 20.0))
 
-    req_exp = extract_required_experience(job.title, job.description or "")
-    exp_score = 95.0 if (req_exp is None or req_exp <= cand_exp + 0.25) else 30.0
+    exp_score = experience_fit_score(job, profile, user_prefs)
 
-    role_score = 70.0
-    t_lower = job.title.lower()
-    for title in profile.recent_titles:
-        terms = [t for t in title.lower().split() if len(t) > 2]
-        if any(term in t_lower for term in terms):
-            role_score = 95.0
-            break
+    role_score = _role_similarity(job.title, profile)
 
     ind, c_type, _ = classify_company(job.company, job.title, job.description or "")
 
@@ -269,6 +352,27 @@ def _calculate_weighted_score(
     }
 
 
+_GENERIC_ROLE_TERMS = {
+    "engineer", "engineering", "developer", "development", "software",
+    "senior", "junior", "staff", "principal", "lead", "the", "and",
+}
+
+
+def _role_similarity(job_title: str, profile: ResumeProfileSchema) -> float:
+    role_titles = profile.target_roles or profile.recent_titles
+    if not role_titles:
+        return 50.0
+    job_terms = set(re.findall(r"[a-z0-9+#.]+", job_title.lower())) - _GENERIC_ROLE_TERMS
+    if not job_terms:
+        return 50.0
+    best = 0.0
+    for role in role_titles:
+        role_terms = set(re.findall(r"[a-z0-9+#.]+", role.lower())) - _GENERIC_ROLE_TERMS
+        if role_terms:
+            best = max(best, len(job_terms & role_terms) / len(role_terms))
+    return round(50.0 + 45.0 * best, 1)
+
+
 def compute_match_score_deterministic(
     job: NormalizedJobSchema,
     profile: ResumeProfileSchema,
@@ -295,33 +399,35 @@ def compute_match_score_deterministic(
     """
     from app.ai_job_search.skill_normalizer import normalize_skill
 
-    cand_exp = float(user_prefs.get("years_experience") or profile.years_experience or 1.0)
+    skill_weights = {"primary": 2.5, "supporting": 1.35, "tools": 0.8, "domain": 1.1}
+    weighted_skills: Dict[str, float] = {}
+    for group, weight in skill_weights.items():
+        for skill in getattr(profile.skill_groups, group, []):
+            normalized = normalize_skill(skill)
+            if normalized:
+                weighted_skills[normalized] = max(weighted_skills.get(normalized, 0), weight)
+    for skill in profile.skills:
+        normalized = normalize_skill(skill)
+        if normalized:
+            weighted_skills.setdefault(normalized, 1.0)
 
-    # Normalize resume skills to canonical form for fair comparison
-    resume_skills_norm: Set[str] = {normalize_skill(s) for s in profile.skills}
-
-    # Skill overlap: what fraction of resume skills appear in job requirements?
+    resume_skills_norm: Set[str] = set(weighted_skills)
     matched: Set[str] = resume_skills_norm & job_skills
     missing: Set[str] = resume_skills_norm - job_skills
 
-    if resume_skills_norm:
-        raw_ratio = len(matched) / len(resume_skills_norm)
+    if weighted_skills:
+        total_weight = sum(weighted_skills.values())
+        matched_weight = sum(weighted_skills[skill] for skill in matched)
+        raw_ratio = matched_weight / total_weight
         skills_score = min(100.0, max(20.0, raw_ratio * 100.0 + (15.0 if matched else 0.0)))
     else:
         skills_score = 50.0
 
     # Experience fit
-    req_exp = extract_required_experience(job.title, job.description or "")
-    exp_score = 95.0 if (req_exp is None or req_exp <= cand_exp + 0.25) else 30.0
+    exp_score = experience_fit_score(job, profile, user_prefs)
 
     # Role similarity — title keyword overlap
-    role_score = 70.0
-    t_lower = job.title.lower()
-    for title in profile.recent_titles:
-        terms = [t for t in title.lower().split() if len(t) > 2]
-        if any(term in t_lower for term in terms):
-            role_score = 95.0
-            break
+    role_score = _role_similarity(job.title, profile)
 
     # Industry / company type
     ind, c_type, _ = classify_company(job.company, job.title, job.description or "")

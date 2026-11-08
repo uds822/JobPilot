@@ -183,6 +183,7 @@ class GreenhouseProvider(JobProvider):
             location=location,
             remote="remote" in f"{location} {title}".lower(),
             description=description or None,
+            description_completeness="full" if description else "unknown",
             salary_min=None,
             salary_max=None,
             salary_currency=None,

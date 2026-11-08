@@ -679,14 +679,15 @@ async def source_health_status() -> list[dict[str, object]]:
             discovery_status = metadata.discovery_status
             if verified and discovery_status == "discovery_pending":
                 discovery_status = "source_verified"
-            if not source and not metadata.careers_url:
+            if not source and not metadata.careers_url and not company.website:
                 status = "needs_careers_url"
-            if source and not supported:
+            if source and not supported and status != "unsupported":
                 status = "adapter_required"
             result.append({
                 "company_id": company.id,
                 "company": company.name,
                 "categories": metadata.tags or [],
+                "website_url": company.website,
                 "careers_url": metadata.careers_url,
                 "provider": source.provider if source else "pending",
                 "identifier": source.identifier if source else "",
@@ -720,7 +721,8 @@ async def coverage_report():
     counts = {
         "registered": len(companies),
         "with_careers_url": company_count(lambda row: bool(row["careers_url"])),
-        "needs_careers_url": company_count(lambda row: not row["careers_url"]),
+        "with_official_website": company_count(lambda row: bool(row["website_url"])),
+        "needs_careers_url": company_count(lambda row: not row["careers_url"] and not row["website_url"]),
         "discovery_pending": company_count(lambda row: row["discovery_status"] == "discovery_pending"),
         "discovering": company_count(lambda row: row["discovery_status"] == "discovering"),
         "discovered": company_count(lambda row: bool(row["canonical_identity"])),

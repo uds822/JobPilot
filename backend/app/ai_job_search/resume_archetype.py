@@ -28,7 +28,11 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # ── Weight constants (context-based) ─────────────────────────────────────────
-WEIGHT_FLAT_SKILL = 1.0       # skill appears only in the flat skills list
+WEIGHT_FLAT_SKILL = 1.0       # compatibility weight for profiles without skill groups
+WEIGHT_PRIMARY_SKILL = 2.5
+WEIGHT_SUPPORTING_SKILL = 1.35
+WEIGHT_TOOL_SKILL = 0.8
+WEIGHT_DOMAIN_SKILL = 1.1
 WEIGHT_RECENT_ROLE = 2.0      # skill found in most-recent role/title text
 WEIGHT_PROJECT_DESC = 2.0     # skill found in a project description
 WEIGHT_PROJECT_TITLE = 3.0    # skill found in a project title
@@ -73,10 +77,23 @@ def build_weighted_skill_vector(profile: "ResumeProfileSchema") -> dict[str, flo
     """
     accumulator: dict[str, float] = defaultdict(float)
 
-    # --- flat skills list ---
+    group_weights = {
+        "primary": WEIGHT_PRIMARY_SKILL,
+        "supporting": WEIGHT_SUPPORTING_SKILL,
+        "tools": WEIGHT_TOOL_SKILL,
+        "domain": WEIGHT_DOMAIN_SKILL,
+    }
+    grouped_skills: set[str] = set()
+    for group, weight in group_weights.items():
+        values = getattr(profile.skill_groups, group, []) if profile.skill_groups else []
+        for skill in normalize_skills(values):
+            grouped_skills.add(skill)
+            accumulator[skill] += weight * frequency_boost(1)
+
     flat_normalized = normalize_skills(profile.skills)
     for skill in flat_normalized:
-        accumulator[skill] += WEIGHT_FLAT_SKILL * frequency_boost(1)
+        if skill not in grouped_skills:
+            accumulator[skill] += WEIGHT_FLAT_SKILL * frequency_boost(1)
 
     # --- most-recent role/title ---
     # ResumeProfileSchema has recent_titles (list of strings)
@@ -153,10 +170,6 @@ def classify_resume(
 
     ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     top = [{"name": name, "confidence": conf} for name, conf in ranked[:top_n] if conf > 0]
-
-    # Ensure at least one archetype is returned
-    if not top:
-        top = [{"name": "BACKEND_DEV", "confidence": 0.0}]
 
     logger.info(f"Archetype classification: {top}")
 

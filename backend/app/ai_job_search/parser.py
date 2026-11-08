@@ -14,8 +14,15 @@ Extract a structured candidate profile from this resume text.
 Return ONLY a valid JSON object matching this exact schema — no other text:
 {{
   "skills": ["string"],
+  "skill_groups": {{
+    "primary": ["core skills clearly demonstrated in recent work or projects"],
+    "supporting": ["additional relevant skills"],
+    "tools": ["frameworks, platforms, databases and developer tools"],
+    "domain": ["industry and problem-domain expertise"]
+  }},
   "years_experience": number,
   "recent_titles": ["string"],
+  "target_roles": ["up to 10 evidence-backed roles, ordered by strongest fit; include backend Python, SDE I, applied GenAI/LLM roles, and applied ML only when resume evidence supports them"],
   "seniority_level": "entry" | "mid" | "senior" | "lead" | "exec",
   "preferred_locations": ["string"],
   "remote_preference": "remote" | "hybrid" | "onsite" | "any",
@@ -40,11 +47,19 @@ def extract_text_from_file(file_bytes: bytes, filename: str) -> str:
         try:
             import pypdf
             reader = pypdf.PdfReader(io.BytesIO(file_bytes))
-            blocks = [page.extract_text() for page in reader.pages if page.extract_text()]
-            return "\n".join(blocks)
+            blocks = [text for page in reader.pages if (text := page.extract_text())]
+            extracted = "\n".join(blocks).strip()
+            if not extracted:
+                raise ValueError("No selectable text found in this PDF. Upload a text-based PDF or DOCX.")
+            return extracted
+        except ImportError as e:
+            logger.exception("PDF extraction dependency pypdf is unavailable")
+            raise ValueError("PDF support is not installed in the backend. Install backend requirements and restart the API.") from e
+        except ValueError:
+            raise
         except Exception as e:
-            logger.warning(f"PDF extraction failed: {e}")
-            return file_bytes.decode("utf-8", errors="ignore")
+            logger.exception("PDF text extraction failed")
+            raise ValueError("Could not read this PDF. Try exporting it as a text-based PDF or DOCX.") from e
 
     if ext in ("docx", "doc"):
         try:
@@ -130,17 +145,25 @@ def _heuristic_parse(text: str) -> ResumeProfileSchema:
     """Keyword-based heuristic parser — used when no LLM is available."""
     text_lower = text.lower()
 
-    known_skills = [
-        "python", "fastapi", "react", "typescript", "javascript", "postgresql", "postgres",
-        "sql", "aws", "docker", "kubernetes", "rest api", "html", "css", "node.js",
-        "express", "git", "ci/cd", "microservices", "redis", "alembic", "sqlalchemy",
-        "graphql", "tailwind", "next.js", "vite", "pytest", "django", "flask",
-    ]
-    found_skills = [s.title() for s in known_skills if s in text_lower]
-    if not found_skills:
-        found_skills = ["Python", "FastAPI", "React", "PostgreSQL"]
+    from app.ai_job_search.job_skill_extractor import KNOWN_SKILLS, extract_job_skills
+    from app.ai_job_search.skill_normalizer import normalize_skill
 
-    years = 3.5
+    canonical_skills = sorted(extract_job_skills(text, KNOWN_SKILLS, normalize_skill))
+    display_names = {
+        "aws": "AWS", "c++": "C++", "c#": "C#", "ci/cd": "CI/CD",
+        "fastapi": "FastAPI", "javascript": "JavaScript", "node.js": "Node.js",
+        "postgresql": "PostgreSQL", "react": "React", "rest api": "REST API",
+        "sql": "SQL", "typescript": "TypeScript",
+    }
+    found_skills = [display_names.get(skill, skill.title()) for skill in canonical_skills]
+    tool_names = {
+        "aws", "microsoft azure", "google cloud", "docker", "kubernetes", "terraform",
+        "jenkins", "git", "linux", "postgresql", "mysql", "mongodb", "redis", "jira",
+    }
+    tools = [name for skill, name in zip(canonical_skills, found_skills) if skill in tool_names]
+    primary = [name for skill, name in zip(canonical_skills, found_skills) if skill not in tool_names]
+
+    years = 0.0
     yr_match = re.search(r"(\d+)\+?\s*years?(?:\s+of)?\s+experience", text_lower)
     if yr_match:
         try:
@@ -156,18 +179,25 @@ def _heuristic_parse(text: str) -> ResumeProfileSchema:
     elif "junior" in text_lower or "entry" in text_lower or years <= 1:
         seniority = "entry"
 
-    titles = []
-    if "senior" in text_lower:
-        titles.append("Senior Software Engineer")
-    if "software" in text_lower or "developer" in text_lower:
-        titles.append("Software Engineer")
-    if not titles:
-        titles = ["Full Stack Engineer", "Backend Developer"]
+    role_patterns = (
+        ("Machine Learning Engineer", ("machine learning engineer", "ml engineer")),
+        ("AI Engineer", ("ai engineer", "artificial intelligence engineer")),
+        ("Data Engineer", ("data engineer",)),
+        ("Data Scientist", ("data scientist",)),
+        ("Backend Engineer", ("backend engineer", "backend developer")),
+        ("Frontend Engineer", ("frontend engineer", "frontend developer")),
+        ("Full Stack Engineer", ("full stack engineer", "full-stack engineer", "full stack developer")),
+        ("DevOps Engineer", ("devops engineer", "site reliability engineer", "sre")),
+        ("Software Engineer", ("software engineer", "software developer")),
+    )
+    titles = [label for label, phrases in role_patterns if any(phrase in text_lower for phrase in phrases)][:3]
 
     return ResumeProfileSchema(
         skills=found_skills,
+        skill_groups={"primary": primary, "tools": tools},
         years_experience=years,
         recent_titles=titles,
+        target_roles=titles.copy(),
         seniority_level=seniority,
         preferred_locations=[],
         remote_preference="remote" if "remote" in text_lower else "any",
@@ -177,7 +207,79 @@ def _heuristic_parse(text: str) -> ResumeProfileSchema:
         salary_expectation_min=None,
         salary_expectation_max=None,
         salary_currency="USD",
+        parse_method="heuristic",
     )
+
+
+def _infer_target_roles(
+    profile: ResumeProfileSchema, evidence_text: str = ""
+) -> ResumeProfileSchema:
+    roles: list[str] = []
+    declared_roles = list(profile.target_roles) + list(profile.recent_titles)
+    normalized_skills = {
+        skill.lower().replace(" ", "")
+        for skill in profile.skills
+        + profile.skill_groups.primary
+        + profile.skill_groups.supporting
+        + profile.skill_groups.tools
+        + profile.skill_groups.domain
+    }
+    evidence = f"{evidence_text} {' '.join(profile.recent_titles)}".lower()
+
+    has_python = "python" in normalized_skills or "python" in evidence
+    backend_signals = (
+        "fastapi", "django", "flask", "postgresql", "sqlalchemy", "restapi",
+        "redis", "microservices", "backend engineer", "backend developer",
+    )
+    has_backend_evidence = any(
+        signal.replace(" ", "") in normalized_skills or signal in evidence
+        for signal in backend_signals
+    )
+    ai_signals = (
+        "llm", "langchain", "langgraph", "rag", "agentic", "generative ai",
+        "azure ai foundry", "semantic kernel", "vector search", "embeddings",
+    )
+    matched_ai_signals = [signal for signal in ai_signals if signal in evidence or signal.replace(" ", "") in normalized_skills]
+    has_ai_evidence = len(matched_ai_signals) >= 2
+
+    current_title_is_software = any(
+        title in evidence for title in ("software engineer", "software development engineer", "sde")
+    )
+    if current_title_is_software and profile.years_experience <= 3:
+        roles.append("Software Development Engineer I")
+    if has_python and has_backend_evidence:
+        roles.extend(("Python Backend Engineer", "Backend Developer"))
+    if has_ai_evidence:
+        roles.extend(("Applied AI Engineer", "Generative AI Engineer", "LLM Application Engineer"))
+    if has_python and has_backend_evidence and has_ai_evidence:
+        roles.append("AI Backend Engineer")
+    if any(term in evidence for term in ("sentence transformers", "model deployment", "machine learning")):
+        roles.extend(("Applied Machine Learning Engineer", "Machine Learning Engineer"))
+
+    if roles:
+        roles.extend(declared_roles)
+        profile.target_roles = list(dict.fromkeys(role.strip() for role in roles if role.strip()))[:10]
+        return profile
+    if declared_roles:
+        profile.target_roles = list(dict.fromkeys(role.strip() for role in declared_roles if role.strip()))[:10]
+        return profile
+
+    from app.ai_job_search.resume_archetype import classify_resume
+
+    role_names = {
+        "AI_ENGINEER": "AI Engineer",
+        "BACKEND_DEV": "Backend Engineer",
+        "ML_ENGINEER": "Machine Learning Engineer",
+        "DATA_ENGINEER": "Data Engineer",
+        "FULL_STACK": "Full Stack Engineer",
+    }
+    ranked = classify_resume(profile)["top_archetypes"]
+    profile.target_roles = [
+        role_names[item["name"]]
+        for item in ranked
+        if item["confidence"] >= 0.2 and item["name"] in role_names
+    ][:3]
+    return profile
 
 
 async def parse_resume_content(file_bytes: bytes, filename: str) -> ResumeProfileSchema:
@@ -192,15 +294,20 @@ async def parse_resume_content(file_bytes: bytes, filename: str) -> ResumeProfil
     """
     raw_text = extract_text_from_file(file_bytes, filename)
     if not raw_text.strip():
-        logger.warning("Empty resume text — using default profile")
-        raw_text = "Experienced Software Engineer with background in Python, FastAPI, React, PostgreSQL, and AWS."
+        raise ValueError("No readable text found in this resume. Try a text-based PDF or DOCX file.")
 
     parsed = await _try_llm_parse(raw_text)
     if parsed:
         try:
-            return ResumeProfileSchema(**parsed)
+            profile = ResumeProfileSchema(**parsed, parse_method="llm")
+            if profile.skills or profile.recent_titles:
+                return _infer_target_roles(profile, raw_text)
+            logger.warning("LLM returned an empty resume profile; using heuristic extraction")
         except Exception as e:
             logger.warning(f"Schema validation failed for LLM output: {e}")
 
-    logger.warning("All LLM parsers failed — using heuristic fallback")
-    return _heuristic_parse(raw_text)
+    logger.warning("Using heuristic resume extraction")
+    profile = _infer_target_roles(_heuristic_parse(raw_text), raw_text)
+    if not profile.skills and not profile.recent_titles and not profile.target_roles:
+        raise ValueError("Could not identify skills or job roles in this resume. Check that it contains selectable text.")
+    return profile

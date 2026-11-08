@@ -12,9 +12,12 @@ import logging
 from app.ai_job_search.archetypes import ARCHETYPE_QUERIES
 
 logger = logging.getLogger(__name__)
+MAX_ROLE_QUERIES = 10
 
 
-def generate_queries(top_archetypes: list[dict]) -> list[str]:
+def generate_queries(
+    top_archetypes: list[dict], target_roles: list[str] | None = None
+) -> list[str]:
     """
     Generate deduplicated Adzuna search queries from the top archetypes.
 
@@ -38,6 +41,14 @@ def generate_queries(top_archetypes: list[dict]) -> list[str]:
     seen: set[str] = set()
     queries: list[str] = []
 
+    for role in target_roles or []:
+        q_norm = role.strip()
+        if q_norm and q_norm.lower() not in seen:
+            seen.add(q_norm.lower())
+            queries.append(q_norm)
+            if len(queries) >= MAX_ROLE_QUERIES:
+                break
+
     for arch in top_archetypes:
         name = arch.get("name", "")
         for q in ARCHETYPE_QUERIES.get(name, []):
@@ -45,10 +56,13 @@ def generate_queries(top_archetypes: list[dict]) -> list[str]:
             if q_norm and q_norm.lower() not in seen:
                 seen.add(q_norm.lower())
                 queries.append(q_norm)
+                if len(queries) >= MAX_ROLE_QUERIES:
+                    break
+        if len(queries) >= MAX_ROLE_QUERIES:
+            break
 
     if not queries:
-        logger.warning("No archetype queries generated; falling back to 'software engineer'")
-        queries = ["software engineer"]
+        logger.warning("No role queries generated from resume; fetching broad ATS inventory only")
 
     logger.info(f"Generated {len(queries)} queries from archetypes: {queries}")
     return queries

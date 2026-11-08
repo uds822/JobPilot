@@ -96,10 +96,13 @@ ADAPTERS = {
     "ashby": ATSAdapter("ashby", AshbyProvider(), "title", "jobs"),
 }
 
-from app.company_watch.careers_adapters import GoogleAdapter, SmartRecruitersAdapter, StructuredAdapter, WorkdayAdapter
+from app.company_watch.careers_adapters import AmazonAdapter, EightfoldAdapter, GoogleAdapter, OracleAdapter, SmartRecruitersAdapter, StructuredAdapter, WorkdayAdapter
 
 ADAPTERS.update({
+    "amazon": AmazonAdapter(),
+    "eightfold": EightfoldAdapter(),
     "google": GoogleAdapter(),
+    "oracle": OracleAdapter(),
     "smartrecruiters": SmartRecruitersAdapter(),
     "workday": WorkdayAdapter(),
     "direct_html": StructuredAdapter("direct_html"),

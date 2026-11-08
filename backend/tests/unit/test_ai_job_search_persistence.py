@@ -91,6 +91,38 @@ def test_upsert_inserts_new_job_and_updates_it_on_later_run():
     _run(scenario())
 
 
+def test_provider_snippet_does_not_replace_enriched_full_description():
+    async def scenario():
+        external_id = f"enriched-{uuid4()}"
+        await _delete_canonical_jobs(external_id)
+        try:
+            async with AsyncSessionLocal() as db:
+                job = _job(external_id)
+                await services._upsert_canonical_jobs(db, [job])
+                await db.commit()
+                row = await db.scalar(select(AIJob).where(AIJob.external_id == external_id))
+                row.description = "Requires 3-6 years of total experience building Python services."
+                row.description_completeness = "full"
+                row.required_experience_min = 3
+                row.required_experience_max = 6
+                row.experience_source = "description"
+                row.experience_parse_version = 1
+                await db.commit()
+
+                refreshed = job.model_copy(update={"description": "Short Adzuna snippet"})
+                await services._upsert_canonical_jobs(db, [refreshed])
+                await db.commit()
+                await db.refresh(row)
+                assert row.description.startswith("Requires 3-6 years")
+                assert row.description_excerpt == "Short Adzuna snippet"
+                assert row.description_completeness == "full"
+                assert (row.required_experience_min, row.required_experience_max) == (3, 6)
+        finally:
+            await _delete_canonical_jobs(external_id)
+
+    _run(scenario())
+
+
 def test_same_external_id_from_different_sources_creates_two_jobs():
     async def scenario():
         external_id = f"cross-source-{uuid4()}"
@@ -294,7 +326,7 @@ def test_search_run_completes_when_canonical_job_already_exists(monkeypatch, mat
     monkeypatch.setattr(services, "_refresh_company_watch_inventory", lambda: asyncio.sleep(0))
     monkeypatch.setattr(services, "_fetch_stored_company_watch_jobs", lambda db: asyncio.sleep(0, result=([], {})))
     monkeypatch.setattr(services, "classify_resume", lambda profile: {"top_archetypes": ["backend"]})
-    monkeypatch.setattr(services, "generate_queries", lambda archetypes: ["Python engineer"])
+    monkeypatch.setattr(services, "generate_queries", lambda archetypes, target_roles=None: ["Python engineer"])
     monkeypatch.setattr(services, "extract_job_skills", lambda *args, **kwargs: ["Python", "FastAPI", "PostgreSQL"])
     monkeypatch.setattr(
         services,

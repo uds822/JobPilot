@@ -69,6 +69,10 @@ def detect_url(url: str) -> Candidate | None:
         provider = "smartrecruiters"
     elif host in {"www.google.com", "careers.google.com"} and ("careers" in parts or host == "careers.google.com"):
         return Candidate("google", "google", "https://www.google.com/about/careers/applications/jobs/results/?location=India")
+    elif host in {"amazon.jobs", "www.amazon.jobs"}:
+        return Candidate("amazon", "amazon", "https://www.amazon.jobs/en/search.json?country=IND&offset=0&result_limit=100&sort=recent")
+    elif host == "careers.qualcomm.com":
+        return Candidate("eightfold", "careers.qualcomm.com", "https://careers.qualcomm.com/careers?domain=qualcomm.com")
     else:
         patterns = (
             ("icims", lambda h: h.endswith(".icims.com")),
@@ -84,12 +88,20 @@ def detect_url(url: str) -> Candidate | None:
                 if provider == "jobvite" and parts:
                     return Candidate(provider, parts[0], f"https://{host}/{parts[0]}")
                 if provider == "eightfold":
-                    return Candidate(provider, host, f"https://{host}/careers")
+                    domain = parse_qs(parsed.query).get("domain", [None])[0]
+                    query = urlencode({"domain": domain}) if domain else ""
+                    return Candidate(provider, host, urlunsplit(("https", host, "/careers", query, "")))
                 if provider == "oracle" and "sites" in parts and len(parts) > parts.index("sites") + 1:
                     site = parts[parts.index("sites") + 1]
                     return Candidate(provider, f"{host}:{site}", urlunsplit((parsed.scheme, parsed.netloc, "/" + "/".join(parts[:parts.index("sites") + 2]), "", "")))
                 if provider == "successfactors" and parse_qs(parsed.query).get("company"):
                     return Candidate(provider, f"{host}:{parse_qs(parsed.query)['company'][0]}", url)
+                if provider == "successfactors":
+                    path = parsed.path.lower()
+                    if not re.search(r"/(?:career|careers|careersection|jobs?|jobsearch)(?:/|$)", path):
+                        return None
+                    if re.search(r"\.(?:js|css|map|woff2?|ttf|png|jpe?g|svg)$", path):
+                        return None
                 return Candidate(provider, hashlib.sha256(url.encode()).hexdigest(), url)
         return None
     if board and re.fullmatch(r"[A-Za-z0-9_.-]+", board) and board not in {"embed", "v1", "v0"}:

@@ -78,6 +78,7 @@ class AshbyProvider:
             if len(salaries) == 1:
                 salary = salaries[0]
         external_id = f"{board}_{posting_id}"
+        description = self._description(item) or None
         return NormalizedJobSchema(
             job_hash=hashlib.sha256(f"ashby:{external_id}".encode()).hexdigest(),
             source=self.name,
@@ -86,7 +87,8 @@ class AshbyProvider:
             company=company,
             location=" / ".join(locations),
             remote=item.get("isRemote") is True or item.get("workplaceType") == "Remote",
-            description=self._description(item) or None,
+            description=description,
+            description_completeness="full" if description else "unknown",
             salary_min=salary.get("minValue") if salary else None,
             salary_max=salary.get("maxValue") if salary else None,
             salary_currency=salary.get("currencyCode") if salary else None,

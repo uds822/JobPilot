@@ -206,7 +206,7 @@ async def record_discovery(result):
             status = "source_discovered"
         elif result.candidates:
             status = "adapter_required"
-        elif not metadata.careers_url:
+        elif not metadata.careers_url and not result.company.website:
             status = "needs_careers_url"
         else:
             status = "discovery_failed"

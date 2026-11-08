@@ -167,6 +167,11 @@ async def unexpected_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={"detail": "An internal server error occurred."},
     )
+@app.get("/health", tags=["Health"])
+async def health_check():
+    return {"status": "ok", "app": "JobPilot API"}
+
+
 @app.get("/test-error")
 async def test_error():
     raise RuntimeError("SECRET database failure")

@@ -3,12 +3,13 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import literal_column
+from sqlalchemy import case, literal_column
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai_job_search.models import AIJob
 from app.ai_job_search.schemas import NormalizedJobSchema
+from app.ai_job_search.experience import extract_experience_facts
 
 
 CANONICAL_JOB_CONSTRAINT = "uq_ai_jobs_source_external_id"
@@ -20,6 +21,10 @@ def canonical_job_values(
     observed_at: datetime,
 ) -> dict[str, Any]:
     """Return provider-owned fields that are safe to insert or refresh."""
+    completeness = "snippet" if job.source == "adzuna" else job.description_completeness
+    facts = extract_experience_facts(
+        job.title, job.description, completeness=completeness
+    )
     return {
         "job_hash": job.job_hash,
         "source": job.source,
@@ -29,6 +34,16 @@ def canonical_job_values(
         "location": job.location,
         "remote": job.remote,
         "description": job.description,
+        "description_excerpt": job.description if completeness == "snippet" else None,
+        "description_completeness": completeness,
+        "required_experience_min": facts.required_min,
+        "required_experience_max": facts.required_max,
+        "experience_source": facts.source,
+        "experience_confidence": facts.confidence,
+        "experience_evidence": facts.evidence,
+        "seniority_level": facts.seniority_level,
+        "seniority_confidence": facts.seniority_confidence,
+        "experience_parse_version": 1,
         "salary_min": job.salary_min,
         "salary_max": job.salary_max,
         "salary_currency": job.salary_currency,
@@ -88,13 +103,33 @@ async def upsert_canonical_jobs(
                 value["verification_method"] = verification_method
 
         insert_stmt = pg_insert(AIJob).values(values)
+        keep_full = (
+            (AIJob.description_completeness == "full")
+            & (insert_stmt.excluded.description_completeness != "full")
+        )
         update_values = {
             "job_hash": insert_stmt.excluded.job_hash,
             "title": insert_stmt.excluded.title,
             "company": insert_stmt.excluded.company,
             "location": insert_stmt.excluded.location,
             "remote": insert_stmt.excluded.remote,
-            "description": insert_stmt.excluded.description,
+            "description": case((keep_full, AIJob.description), else_=insert_stmt.excluded.description),
+            "description_excerpt": case(
+                (insert_stmt.excluded.description_completeness == "snippet", insert_stmt.excluded.description),
+                else_=AIJob.description_excerpt,
+            ),
+            "description_completeness": case(
+                (keep_full, AIJob.description_completeness),
+                else_=insert_stmt.excluded.description_completeness,
+            ),
+            "required_experience_min": case((keep_full, AIJob.required_experience_min), else_=insert_stmt.excluded.required_experience_min),
+            "required_experience_max": case((keep_full, AIJob.required_experience_max), else_=insert_stmt.excluded.required_experience_max),
+            "experience_source": case((keep_full, AIJob.experience_source), else_=insert_stmt.excluded.experience_source),
+            "experience_confidence": case((keep_full, AIJob.experience_confidence), else_=insert_stmt.excluded.experience_confidence),
+            "experience_evidence": case((keep_full, AIJob.experience_evidence), else_=insert_stmt.excluded.experience_evidence),
+            "seniority_level": insert_stmt.excluded.seniority_level,
+            "seniority_confidence": insert_stmt.excluded.seniority_confidence,
+            "experience_parse_version": case((keep_full, AIJob.experience_parse_version), else_=insert_stmt.excluded.experience_parse_version),
             "salary_min": insert_stmt.excluded.salary_min,
             "salary_max": insert_stmt.excluded.salary_max,
             "salary_currency": insert_stmt.excluded.salary_currency,

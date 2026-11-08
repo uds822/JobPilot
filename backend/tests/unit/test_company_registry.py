@@ -48,15 +48,20 @@ async def _cleanup(companies, runs=()):
         await db.commit()
 
 
-def test_bootstrap_consumes_all_groups_and_three_providers():
+def test_bootstrap_consumes_all_groups_and_registered_providers():
     document = load_registry()
     by_name = {company.name: company for company in document.companies}
-    assert len(by_name) == 152
+    assert len(by_name) == 204
     assert set(by_name["NVIDIA"].categories) == {"big_tech", "semiconductor"}
     assert set(by_name["Cisco"].categories) == {"big_tech", "networking"}
     assert by_name["Google"].sources == []
     assert by_name["Walmart Global Tech"].sources == []
-    assert {source.provider for company in document.companies for source in company.sources} == {"greenhouse", "lever", "ashby"}
+    assert by_name["Amazon"].website_url == "https://www.amazon.com"
+    assert "indian_product" in by_name["MoEngage"].categories
+    assert "gcc" in by_name["BMW Group"].categories
+    assert {source.provider for company in document.companies for source in company.sources} == {"greenhouse", "lever", "ashby", "eightfold"}
+    assert [(source.provider, source.identifier) for source in by_name["PayPal"].sources] == [("eightfold", "paypal.eightfold.ai")]
+    assert [(source.provider, source.identifier) for source in by_name["Qualcomm"].sources] == [("eightfold", "careers.qualcomm.com")]
 
 
 @pytest.mark.parametrize("companies", [

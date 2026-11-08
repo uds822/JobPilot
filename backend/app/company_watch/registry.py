@@ -201,8 +201,13 @@ async def register_companies(db: AsyncSession, document: RegistryDocument) -> di
             metadata = CompanyIntelligence(company_id=company.id, priority_tier=entry.priority_tier, tags=[])
             db.add(metadata)
             intelligence[company.id] = metadata
+        new_careers_url = not metadata.careers_url and bool(entry.careers_url)
         metadata.careers_url = metadata.careers_url or entry.careers_url
         if not metadata.last_discovery_at and not metadata.discovery_claim_token:
+            metadata.next_discovery_at = datetime.utcnow()
+        if new_careers_url and metadata.discovery_status == "discovery_failed":
+            metadata.discovery_status = "discovery_pending"
+            metadata.discovery_error = None
             metadata.next_discovery_at = datetime.utcnow()
         if not metadata.careers_url and not company.website:
             metadata.discovery_status = "needs_careers_url"

@@ -21,6 +21,18 @@ class AIJob(Base):
     location: Mapped[str] = mapped_column(String(255), default="Remote")
     remote: Mapped[bool] = mapped_column(Boolean, default=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    description_excerpt: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    description_completeness: Mapped[str] = mapped_column(String(20), default="unknown", nullable=False)
+    description_enrichment_checked_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    description_enrichment_status: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    required_experience_min: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    required_experience_max: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    experience_source: Mapped[str] = mapped_column(String(30), default="unknown", nullable=False)
+    experience_confidence: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    experience_evidence: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    seniority_level: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    seniority_confidence: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    experience_parse_version: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     
     salary_min: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     salary_max: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
@@ -86,6 +98,8 @@ class SearchRun(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), index=True)
     profile_version_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("user_resume_profiles.id"), nullable=True)
+    search_scope: Mapped[str] = mapped_column(String(20), default="general", server_default="general", nullable=False)
+    company_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
     
     status: Mapped[str] = mapped_column(String(20), default="queued") # queued | running | completed | failed
     started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -124,6 +138,9 @@ class AIJobMatch(Base):
     # Sub-factor breakdown
     skills_overlap: Mapped[float] = mapped_column(Float, default=0.0)
     experience_fit: Mapped[float] = mapped_column(Float, default=0.0)
+    experience_status: Mapped[str] = mapped_column(String(20), default="unknown", nullable=False)
+    experience_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    seniority_conflict: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     role_similarity: Mapped[float] = mapped_column(Float, default=0.0)
     location_fit: Mapped[float] = mapped_column(Float, default=0.0)
     industry_fit: Mapped[float] = mapped_column(Float, default=0.0)

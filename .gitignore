@@ -43,14 +43,6 @@ logs/
 # Scratch & temporary scripts
 companie1.js
 companies2.js
-backend/check_db.py
-backend/debug_search.py
-backend/find_working_model.py
-backend/list_models.py
-backend/test_adz.py
-backend/test_all_models.py
-backend/test_deepseek.py
-backend/test_score.py
-backend/test_specific_models.py
+backend/scripts/
 ai-job-search-feature-plan-*.md
 jobauto_*.md
