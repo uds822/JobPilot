@@ -1,4 +1,11 @@
-from playwright.async_api import async_playwright
+import logging
+
+try:
+    from playwright.async_api import async_playwright
+except ImportError:
+    async_playwright = None
+
+logger = logging.getLogger(__name__)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # WHY ASYNC PLAYWRIGHT?
@@ -37,6 +44,10 @@ async def fetch_dynamic_page(url: str) -> str:
     Returns:
         The full HTML content of the page after JavaScript has rendered.
     """
+    if async_playwright is None:
+        logger.warning("Playwright is not installed; dynamic page fetch skipped.")
+        return ""
+
     async with async_playwright() as p:
         # await: Playwright starts the Chromium process (OS-level, takes ~1–2s)
         browser = await p.chromium.launch(headless=True)

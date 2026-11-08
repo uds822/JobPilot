@@ -57,23 +57,25 @@ jobs:
 
       - name: Run database migrations (Alembic)
         env:
-          DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/jobtracker_test
+          DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/jobtracker_test
           SECRET_KEY: test_secret_key_ci_environment_1234567890
           ALGORITHM: HS256
+          PYTHONPATH: .
         run: |
           cd backend
           python -m alembic upgrade head
 
       - name: Run backend unit test suite
         env:
-          DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/jobtracker_test
+          DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/jobtracker_test
           SECRET_KEY: test_secret_key_ci_environment_1234567890
           ALGORITHM: HS256
-          REDIS_HOST: localhost
+          REDIS_HOST: 127.0.0.1
           REDIS_PORT: 6379
+          PYTHONPATH: .
         run: |
           cd backend
-          pytest tests/unit
+          python -m pytest tests/unit
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Job 2: Frontend Compilation & TypeScript Check

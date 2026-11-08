@@ -1,11 +1,11 @@
 import os
 from typing import Generator
 
-# Enforce environment variables for testing BEFORE loading app modules
-os.environ["DATABASE_URL"] = "postgresql+psycopg://postgres:Rajan123@localhost:5432/jobtracker_test"
-os.environ["SECRET_KEY"] = "test_secret_key_1234567890_testing"
-os.environ["ALGORITHM"] = "HS256"
-os.environ["ACCESS_TOKEN_EXPIRE_MINUTES"] = "60"
+# Enforce default environment variables for testing BEFORE loading app modules
+os.environ.setdefault("DATABASE_URL", "postgresql+psycopg://postgres:Rajan123@localhost:5432/jobtracker_test")
+os.environ.setdefault("SECRET_KEY", "test_secret_key_1234567890_testing")
+os.environ.setdefault("ALGORITHM", "HS256")
+os.environ.setdefault("ACCESS_TOKEN_EXPIRE_MINUTES", "60")
 
 import pytest
 from alembic import command
